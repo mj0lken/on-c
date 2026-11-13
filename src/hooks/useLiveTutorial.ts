@@ -34,6 +34,12 @@ export interface TourCursorState {
   topLayerBumpSeq: number;
 }
 
+export const TOUR_SPEED = 0.8;
+
+function scaleTourMs(ms: number): number {
+  return Math.max(16, Math.round(ms / TOUR_SPEED));
+}
+
 export const TOUR_STEPS: ReadonlyArray<TourStepMeta> = [
   { id: 'math', label: 'Math & ans', shortHint: 'Headings, expressions & ans chaining' },
   { id: 'currency', label: 'Currency', shortHint: 'Live FX conversion & block sum' },
@@ -701,7 +707,9 @@ export function useLiveTutorial(
   }, []);
 
   const hideCursorAndCaret = useCallback(() => {
-    setCursor((prev) => ({ ...prev, visible: false, clicking: false }));
+    setCursor((prev) =>
+      prev.visible || prev.clicking ? { ...prev, visible: false, clicking: false } : prev
+    );
     appRef.current?.setTourTypingRowId(null);
   }, [appRef]);
 
@@ -761,15 +769,15 @@ export function useLiveTutorial(
           }
           clickResetTimerRef.current = window.setTimeout(() => {
             setCursor((prev) => ({ ...prev, clicking: false }));
-          }, 210);
+          }, scaleTourMs(210));
         }
       }
 
       frameIdxRef.current = idx + 1;
-      timerRef.current = window.setTimeout(tick, frame.delayMs);
+      timerRef.current = window.setTimeout(tick, scaleTourMs(frame.delayMs));
     };
 
-    const initialDelay = frameIdxRef.current === 0 ? 480 : 60;
+    const initialDelay = scaleTourMs(frameIdxRef.current === 0 ? 480 : 60);
     timerRef.current = window.setTimeout(tick, initialDelay);
 
     return clearScheduledFrame;

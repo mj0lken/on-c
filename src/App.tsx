@@ -41,6 +41,7 @@ import {
   markVisitorEdited,
   persistJson,
   persistString,
+  resolveEffectiveScheme,
   SETTINGS_STORAGE_KEY,
   syncMetaColorScheme,
   TABS_STORAGE_KEY,
@@ -99,11 +100,29 @@ export const App = forwardRef<AppHandle, AppProps>(
     const [isTourHelpMode, setIsTourHelpMode] = useState(false);
     const [tourTypingRowId, setTourTypingRowId] = useState<string | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [osIsDark, setOsIsDark] = useState<boolean>(() =>
+      typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+        : false
+    );
 
     const isTauri = useMemo(
       () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window,
       []
     );
+
+    const resolvedCalcTheme = useMemo(
+      () => resolveEffectiveScheme(settings.theme, osIsDark),
+      [settings.theme, osIsDark]
+    );
+
+    useEffect(() => {
+      if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+      const mql = window.matchMedia('(prefers-color-scheme: dark)');
+      const onChange = (e: MediaQueryListEvent) => setOsIsDark(e.matches);
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    }, []);
 
     const undoStacksRef = useRef<Map<string, HistorySnapshot[]>>(new Map());
     const redoStacksRef = useRef<Map<string, HistorySnapshot[]>>(new Map());
@@ -122,8 +141,8 @@ export const App = forwardRef<AppHandle, AppProps>(
     }, []);
 
     useEffect(() => {
-      syncMetaColorScheme(settings.theme, isTauri);
-    }, [settings.theme, isTauri]);
+      syncMetaColorScheme(settings.theme, isTauri, osIsDark);
+    }, [settings.theme, isTauri, osIsDark]);
 
     useEffect(() => {
       const onStorage = (e: StorageEvent) => {
@@ -688,6 +707,7 @@ export const App = forwardRef<AppHandle, AppProps>(
           .filter(Boolean)
           .join(' ')}
         data-calc-theme={settings.theme}
+        data-calc-resolved={resolvedCalcTheme}
         onPointerDownCapture={handleStageTrustedInteract}
         onKeyDownCapture={handleStageTrustedInteract}
       >

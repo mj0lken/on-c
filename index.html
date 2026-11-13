@@ -37,10 +37,15 @@
           }
         }
         document.querySelector('meta[name="color-scheme"]').content = resolved;
+        var osDark =
+          window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var effectiveScheme =
+          resolved === 'light dark' ? (osDark ? 'dark' : 'light') : resolved;
+        document.documentElement.setAttribute('data-color-scheme', effectiveScheme);
       } catch (e) {}
     </script>
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
-    <title>on/c — Natural-language notepad calculator</title>
+    <title>on/c — Simply. Math</title>
   </head>
   <body>
     <div id="root"></div>

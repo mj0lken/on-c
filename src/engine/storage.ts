@@ -19,8 +19,14 @@ export const ARCHIVED_TABS_KEY = 'onc-archived-tabs-v1';
 export const SETTINGS_STORAGE_KEY = 'onc-settings-v1';
 export const CALC_COLOR_SCHEME_KEY = 'onc-calc-color-scheme';
 export const PAGE_COLOR_SCHEME_KEY = 'onc-page-color-scheme';
+export const APP_SIZE_STORAGE_KEY = 'onc-app-size-v1';
 export const VISITOR_EDITED_KEY = 'onc-visitor-edited-v1';
 export const TOUR_COMPLETED_KEY = 'onc-tour-completed-v1';
+
+export interface SavedAppSize {
+  width: number;
+  height: number;
+}
 
 export const DEFAULT_SETTINGS: CalculatorSettings = {
   theme: 'dark',
@@ -224,22 +230,70 @@ export function loadPageTheme(): 'light' | 'dark' {
   return 'light';
 }
 
-export function applyPageThemeToMeta(theme: ThemePreference): void {
+export function loadSavedAppSize(): SavedAppSize | null {
+  try {
+    const raw = localStorage.getItem(APP_SIZE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SavedAppSize>;
+    if (
+      typeof parsed.width === 'number' &&
+      Number.isFinite(parsed.width) &&
+      typeof parsed.height === 'number' &&
+      Number.isFinite(parsed.height) &&
+      parsed.width >= 320 &&
+      parsed.height >= 340
+    ) {
+      return {
+        width: Math.round(parsed.width),
+        height: Math.round(parsed.height),
+      };
+    }
+  } catch {
+    // Ignore storage read failure
+  }
+  return null;
+}
+
+export function persistAppSize(size: SavedAppSize): void {
+  persistJson(APP_SIZE_STORAGE_KEY, {
+    width: Math.round(size.width),
+    height: Math.round(size.height),
+  });
+}
+
+function readOsPrefersDark(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-color-scheme: dark)').matches
+    : false;
+}
+
+export function applyPageThemeToMeta(
+  theme: ThemePreference,
+  osIsDark = readOsPrefersDark()
+): void {
+  const effective = resolveEffectiveScheme(theme, osIsDark);
   if (typeof document !== 'undefined') {
     const meta = document.querySelector('meta[name="color-scheme"]');
     if (meta) {
       meta.setAttribute('content', theme === 'system' ? 'light dark' : theme);
     }
+    document.documentElement.setAttribute('data-color-scheme', effective);
   }
   persistString(PAGE_COLOR_SCHEME_KEY, theme);
 }
 
-export function syncMetaColorScheme(theme: ThemePreference, isTauri = false): void {
+export function syncMetaColorScheme(
+  theme: ThemePreference,
+  isTauri = false,
+  osIsDark = readOsPrefersDark()
+): void {
   if (isTauri && typeof document !== 'undefined') {
+    const effective = resolveEffectiveScheme(theme, osIsDark);
     const meta = document.querySelector('meta[name="color-scheme"]');
     if (meta) {
       meta.setAttribute('content', theme === 'system' ? 'light dark' : theme);
     }
+    document.documentElement.setAttribute('data-color-scheme', effective);
   }
   persistString(CALC_COLOR_SCHEME_KEY, theme);
 }

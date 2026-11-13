@@ -29,8 +29,10 @@ import {
   deriveCalcThemeFromPageTheme,
   derivePageThemeFromCalcTheme,
   loadPageTheme,
+  loadSavedAppSize,
   resolveEffectiveScheme,
 } from './storage';
+import { TOUR_SPEED } from '../hooks/useLiveTutorial';
 import {
   getAppRouteHref,
   getHomeRouteHref,
@@ -425,5 +427,10 @@ describe('on/c Numi evaluation engine', () => {
     expect(isAppRouteLocation('/on-c/', '?mode=app', '/on-c/')).toBe(true);
     expect(isAppRouteLocation('/on-c/', '', '/on-c/')).toBe(false);
     expect(isAppRouteLocation('/', '', '/')).toBe(false);
+  });
+
+  it('configures live tutorial speed at 0.8x and handles empty app size storage gracefully', () => {
+    expect(TOUR_SPEED).toBe(0.8);
+    expect(loadSavedAppSize()).toBeNull();
   });
 });

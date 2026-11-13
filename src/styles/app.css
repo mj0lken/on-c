@@ -109,7 +109,7 @@
   --scrollbar-thumb: var(--scrollbar-thumb-light);
 
   @media (prefers-color-scheme: dark) {
-    &:not(:has(> head > meta[name='color-scheme'][content='light'])) {
+    &:not([data-color-scheme='light']):not(:has(> head > meta[name='color-scheme'][content='light'])) {
       --bg-stage: var(--bg-stage-dark);
       --bg-surface: var(--bg-surface-dark);
       --bg-subtle: var(--bg-subtle-dark);
@@ -140,7 +140,7 @@
     }
   }
 
-  &:has(> head > meta[name='color-scheme'][content='dark']) {
+  &:is([data-color-scheme='dark'], :has(> head > meta[name='color-scheme'][content='dark'])) {
     --bg-stage: var(--bg-stage-dark);
     --bg-surface: var(--bg-surface-dark);
     --bg-subtle: var(--bg-subtle-dark);
@@ -202,11 +202,11 @@
 
   color-scheme: light dark;
 
-  &:has(> head > meta[name='color-scheme'][content='dark']) {
+  &:is([data-color-scheme='dark'], :has(> head > meta[name='color-scheme'][content='dark'])) {
     color-scheme: dark;
   }
 
-  &:has(> head > meta[name='color-scheme'][content='light']) {
+  &:is([data-color-scheme='light'], :has(> head > meta[name='color-scheme'][content='light'])) {
     color-scheme: light;
   }
 
@@ -257,87 +257,73 @@ html:has(.app-stage.is-tauri) #root {
  * never to backgroundless wrappers, and re-specifying inherited `<color>` properties (`color`,
  * `accent-color`, `caret-color`, `scrollbar-color`) because `light-dark()` resolves at computed-value time.
  */
-.calculator-theme-scope[data-calc-theme='dark']
+.calculator-theme-scope:is([data-calc-resolved='dark'], [data-calc-theme='dark']:not([data-calc-resolved]))
   :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
+  color-scheme: dark;
   color-scheme: only dark;
+  --bg-surface: var(--bg-surface-dark);
+  --bg-subtle: var(--bg-subtle-dark);
+  --bg-hover: var(--bg-hover-dark);
+  --border-color: var(--border-color-dark);
+  --separator-rule: var(--separator-rule-dark);
+  --wordmark-color: var(--wordmark-dark);
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --text-muted: var(--text-muted-dark);
+  --tab-active-bg: var(--tab-active-bg-dark);
+  --tab-active-fg: var(--tab-active-fg-dark);
+  --accent: var(--accent-dark);
+  --accent-soft: var(--accent-soft-dark);
+  --result-color: var(--result-color-dark);
+  --tok-number: var(--tok-number-dark);
+  --tok-op: var(--tok-op-dark);
+  --tok-kw: var(--tok-kw-dark);
+  --tok-unit: var(--tok-unit-dark);
+  --tok-curr: var(--tok-curr-dark);
+  --tok-ans: var(--tok-ans-dark);
+  --tok-var: var(--tok-var-dark);
+  --tok-fn: var(--tok-fn-dark);
+  --tok-label: var(--tok-label-dark);
+  --tok-comment: var(--tok-comment-dark);
+  --scrollbar-track: var(--scrollbar-track-dark);
+  --scrollbar-thumb: var(--scrollbar-thumb-dark);
   background: var(--bg-surface);
   color: var(--text-primary);
   accent-color: var(--accent);
   caret-color: var(--accent);
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-  @supports not (color: light-dark(white, black)) {
-    --bg-surface: var(--bg-surface-dark);
-    --bg-subtle: var(--bg-subtle-dark);
-    --bg-hover: var(--bg-hover-dark);
-    --border-color: var(--border-color-dark);
-    --separator-rule: var(--separator-rule-dark);
-    --wordmark-color: var(--wordmark-dark);
-    --text-primary: var(--text-primary-dark);
-    --text-secondary: var(--text-secondary-dark);
-    --text-muted: var(--text-muted-dark);
-    --tab-active-bg: var(--tab-active-bg-dark);
-    --tab-active-fg: var(--tab-active-fg-dark);
-    --accent: var(--accent-dark);
-    --accent-soft: var(--accent-soft-dark);
-    --result-color: var(--result-color-dark);
-    --tok-number: var(--tok-number-dark);
-    --tok-op: var(--tok-op-dark);
-    --tok-kw: var(--tok-kw-dark);
-    --tok-unit: var(--tok-unit-dark);
-    --tok-curr: var(--tok-curr-dark);
-    --tok-ans: var(--tok-ans-dark);
-    --tok-var: var(--tok-var-dark);
-    --tok-fn: var(--tok-fn-dark);
-    --tok-label: var(--tok-label-dark);
-    --tok-comment: var(--tok-comment-dark);
-    --scrollbar-track: var(--scrollbar-track-dark);
-    --scrollbar-thumb: var(--scrollbar-thumb-dark);
-  }
 }
 
-.calculator-theme-scope[data-calc-theme='light']
+.calculator-theme-scope:is([data-calc-resolved='light'], [data-calc-theme='light']:not([data-calc-resolved]))
   :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
+  color-scheme: light;
   color-scheme: only light;
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  accent-color: var(--accent);
-  caret-color: var(--accent);
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-  @supports not (color: light-dark(white, black)) {
-    --bg-surface: var(--bg-surface-light);
-    --bg-subtle: var(--bg-subtle-light);
-    --bg-hover: var(--bg-hover-light);
-    --border-color: var(--border-color-light);
-    --separator-rule: var(--separator-rule-light);
-    --wordmark-color: var(--wordmark-light);
-    --text-primary: var(--text-primary-light);
-    --text-secondary: var(--text-secondary-light);
-    --text-muted: var(--text-muted-light);
-    --tab-active-bg: var(--tab-active-bg-light);
-    --tab-active-fg: var(--tab-active-fg-light);
-    --accent: var(--accent-light);
-    --accent-soft: var(--accent-soft-light);
-    --result-color: var(--result-color-light);
-    --tok-number: var(--tok-number-light);
-    --tok-op: var(--tok-op-light);
-    --tok-kw: var(--tok-kw-light);
-    --tok-unit: var(--tok-unit-light);
-    --tok-curr: var(--tok-curr-light);
-    --tok-ans: var(--tok-ans-light);
-    --tok-var: var(--tok-var-light);
-    --tok-fn: var(--tok-fn-light);
-    --tok-label: var(--tok-label-light);
-    --tok-comment: var(--tok-comment-light);
-    --scrollbar-track: var(--scrollbar-track-light);
-    --scrollbar-thumb: var(--scrollbar-thumb-light);
-  }
-}
-
-.calculator-theme-scope[data-calc-theme='system']
-  :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
-  color-scheme: light dark;
+  --bg-surface: var(--bg-surface-light);
+  --bg-subtle: var(--bg-subtle-light);
+  --bg-hover: var(--bg-hover-light);
+  --border-color: var(--border-color-light);
+  --separator-rule: var(--separator-rule-light);
+  --wordmark-color: var(--wordmark-light);
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --text-muted: var(--text-muted-light);
+  --tab-active-bg: var(--tab-active-bg-light);
+  --tab-active-fg: var(--tab-active-fg-light);
+  --accent: var(--accent-light);
+  --accent-soft: var(--accent-soft-light);
+  --result-color: var(--result-color-light);
+  --tok-number: var(--tok-number-light);
+  --tok-op: var(--tok-op-light);
+  --tok-kw: var(--tok-kw-light);
+  --tok-unit: var(--tok-unit-light);
+  --tok-curr: var(--tok-curr-light);
+  --tok-ans: var(--tok-ans-light);
+  --tok-var: var(--tok-var-light);
+  --tok-fn: var(--tok-fn-light);
+  --tok-label: var(--tok-label-light);
+  --tok-comment: var(--tok-comment-light);
+  --scrollbar-track: var(--scrollbar-track-light);
+  --scrollbar-thumb: var(--scrollbar-thumb-light);
   background: var(--bg-surface);
   color: var(--text-primary);
   accent-color: var(--accent);
@@ -395,7 +381,8 @@ html:has(.app-stage.is-tauri) #root {
 }
 
 .app-stage.is-embedded-site {
-  height: auto;
+  width: 100%;
+  height: 100%;
   padding: 0;
 }
 
@@ -407,8 +394,8 @@ html:has(.app-stage.is-tauri) #root {
 }
 
 .app-stage.is-embedded-site .calc-perspective {
-  width: min(100%, 500px);
-  height: 550px;
+  width: 100%;
+  height: 100%;
 }
 
 .app-stage.is-tauri .calc-perspective {
@@ -437,6 +424,7 @@ html:has(.app-stage.is-tauri) #root {
 .calc-face {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   background: var(--bg-surface);
@@ -454,12 +442,20 @@ html:has(.app-stage.is-tauri) #root {
   transform: rotateY(0deg) translateZ(0.5px);
 }
 
+.calc-flipper:not(.is-flipped) .calc-face-front {
+  z-index: 2;
+}
+
 .calc-flipper.is-flipped .calc-face-front {
   pointer-events: none;
 }
 
 .calc-face-back {
   transform: rotateY(180deg) translateZ(0.5px);
+}
+
+.calc-flipper.is-flipped .calc-face-back {
+  z-index: 2;
 }
 
 .calc-flipper:not(.is-flipped) .calc-face-back {

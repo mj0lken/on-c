@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { App, AppHandle } from '../App';
 import {
   getAppRouteHref,
+  getHomeRouteHref,
   isAppRouteLocation,
 } from '../engine/routing';
 import {
@@ -10,11 +11,14 @@ import {
   deriveCalcThemeFromPageTheme,
   derivePageThemeFromCalcTheme,
   loadPageTheme,
+  loadSavedAppSize,
   loadSavedSettings,
   PAGE_COLOR_SCHEME_KEY,
+  persistAppSize,
   resolveEffectiveScheme,
+  SavedAppSize,
 } from '../engine/storage';
-import { TOUR_STEPS, useLiveTutorial } from '../hooks/useLiveTutorial';
+import { useLiveTutorial } from '../hooks/useLiveTutorial';
 import { ThemePreference } from '../types';
 import { TutorialCursor } from './TutorialCursor';
 
@@ -22,6 +26,10 @@ const BREW_COMMAND = 'brew install --cask mj0lken/tap/on-c';
 const RELEASES_URL = 'https://github.com/mj0lken/on-c/releases/latest';
 const REPO_URL = 'https://github.com/mj0lken/on-c';
 const NUMI_URL = 'https://numi.app';
+
+const DEFAULT_APP_SIZE: SavedAppSize = { width: 520, height: 580 };
+const MIN_APP_WIDTH = 360;
+const MIN_APP_HEIGHT = 400;
 
 let cachedSupportsDisplayTransition: boolean | undefined;
 
@@ -51,11 +59,48 @@ function canTransitionDisplay(): boolean {
   return cachedSupportsDisplayTransition;
 }
 
+function legacyCopyText(text: string): boolean {
+  if (typeof document === 'undefined' || !document.body) return false;
+  const field = Object.assign(document.createElement('textarea'), { value: text });
+  field.setAttribute('readonly', '');
+  field.style.cssText = 'position:fixed;inset-block-start:0;opacity:0';
+  document.body.append(field);
+  field.select();
+  try {
+    return document.execCommand('copy');
+  } finally {
+    field.remove();
+  }
+}
+
+function clampAppSize(width: number, height: number): SavedAppSize {
+  const maxW =
+    typeof window !== 'undefined' ? Math.max(MIN_APP_WIDTH, window.innerWidth - 32) : 1200;
+  const maxH =
+    typeof window !== 'undefined' ? Math.max(MIN_APP_HEIGHT, window.innerHeight - 32) : 960;
+  return {
+    width: Math.round(Math.min(Math.max(MIN_APP_WIDTH, width), maxW)),
+    height: Math.round(Math.min(Math.max(MIN_APP_HEIGHT, height), maxH)),
+  };
+}
+
 export const LandingPage: React.FC = () => {
   const pageRootRef = useRef<HTMLDivElement>(null);
+  const calcFrameRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<AppHandle>(null);
   const privacyDrawerRef = useRef<HTMLDivElement>(null);
   const calcThemeRef = useRef<ThemePreference>(loadSavedSettings().theme);
+
+  const copyTimerRef = useRef<number | null>(null);
+  const lastCopyMessageRef = useRef<string>('');
+  const resizeDragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startW: number;
+    startH: number;
+    latest: SavedAppSize;
+  } | null>(null);
 
   const [isAppMode, setIsAppMode] = useState<boolean>(() =>
     typeof window !== 'undefined'
@@ -65,14 +110,22 @@ export const LandingPage: React.FC = () => {
 
   const [pageTheme, setPageTheme] = useState<'light' | 'dark'>(loadPageTheme);
   const [osIsDark, setOsIsDark] = useState<boolean>(() =>
-    typeof window !== 'undefined'
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-color-scheme: dark)').matches
       : false
   );
-  const [copiedBrew, setCopiedBrew] = useState(false);
+
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [copyStatusText, setCopyStatusText] = useState<string>('');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
+  const [appSize, setAppSize] = useState<SavedAppSize>(
+    () => loadSavedAppSize() ?? DEFAULT_APP_SIZE
+  );
+  const [isResizing, setIsResizing] = useState(false);
+
   const appRouteHref = useMemo(() => getAppRouteHref(), []);
+  const homeRouteHref = useMemo(() => getHomeRouteHref(), []);
 
   const tutorial = useLiveTutorial(appRef, isAppMode);
 
@@ -102,10 +155,18 @@ export const LandingPage: React.FC = () => {
     return () => mql.removeEventListener('change', onChange);
   }, []);
 
-  // Apply page theme to `<meta name="color-scheme">` & persist
+  // Apply page theme to `<meta name="color-scheme">`, `<html data-color-scheme>`, & persist
   useEffect(() => {
-    applyPageThemeToMeta(pageTheme);
-  }, [pageTheme]);
+    applyPageThemeToMeta(pageTheme, osIsDark);
+  }, [pageTheme, osIsDark]);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
 
   // Cross-tab storage sync for coupled page + calculator themes
   useEffect(() => {
@@ -144,15 +205,35 @@ export const LandingPage: React.FC = () => {
     [osIsDark]
   );
 
+  const reportCopyOutcome = useCallback((ok: boolean) => {
+    if (copyTimerRef.current !== null) {
+      window.clearTimeout(copyTimerRef.current);
+    }
+    let message = ok ? 'Copied' : 'Copy failed';
+    if (message === lastCopyMessageRef.current) {
+      message += '\u00A0';
+    }
+    lastCopyMessageRef.current = message;
+    setCopyStatusText('');
+    setCopyState(ok ? 'copied' : 'failed');
+    requestAnimationFrame(() => {
+      setCopyStatusText(message);
+    });
+    copyTimerRef.current = window.setTimeout(() => {
+      setCopyState('idle');
+      setCopyStatusText('');
+      copyTimerRef.current = null;
+    }, 1800);
+  }, []);
+
   const handleCopyBrew = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(BREW_COMMAND);
-      setCopiedBrew(true);
-      window.setTimeout(() => setCopiedBrew(false), 1800);
+      reportCopyOutcome(true);
     } catch {
-      // Ignore clipboard permission errors
+      reportCopyOutcome(legacyCopyText(BREW_COMMAND));
     }
-  }, []);
+  }, [reportCopyOutcome]);
 
   const closePrivacyDrawerAnimated = useCallback(async () => {
     const el = privacyDrawerRef.current;
@@ -203,7 +284,6 @@ export const LandingPage: React.FC = () => {
 
   const handleEnterAppMode = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // Preserve native modifier clicks (e.g. Cmd+Click to open `/app` in a new tab)
       if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
         return;
       }
@@ -223,6 +303,97 @@ export const LandingPage: React.FC = () => {
     [appRouteHref, isPrivacyOpen, closePrivacyDrawerAnimated, tutorial]
   );
 
+  const handleExitAppMode = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+        return;
+      }
+      e.preventDefault();
+      if (isAppRouteLocation(window.location.pathname, window.location.search)) {
+        window.history.pushState({}, '', homeRouteHref);
+      }
+      setIsAppMode(false);
+    },
+    [homeRouteHref]
+  );
+
+  const handleResizePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isAppMode || e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const frame = calcFrameRef.current;
+      const rect = frame?.getBoundingClientRect();
+      const startW = rect ? rect.width : appSize.width;
+      const startH = rect ? rect.height : appSize.height;
+      const initial = clampAppSize(startW, startH);
+
+      e.currentTarget.setPointerCapture(e.pointerId);
+      resizeDragRef.current = {
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        startW: initial.width,
+        startH: initial.height,
+        latest: initial,
+      };
+      setIsResizing(true);
+    },
+    [isAppMode, appSize.width, appSize.height]
+  );
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = resizeDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    // Symmetric resize around screen center keeps the corner locked 1:1 under the pointer
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    const next = clampAppSize(drag.startW + dx * 2, drag.startH + dy * 2);
+    drag.latest = next;
+    setAppSize(next);
+  }, []);
+
+  const finishResizeDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = resizeDragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    persistAppSize(drag.latest);
+    resizeDragRef.current = null;
+    setIsResizing(false);
+  }, []);
+
+  const handleResizeReset = useCallback(() => {
+    const reset = clampAppSize(DEFAULT_APP_SIZE.width, DEFAULT_APP_SIZE.height);
+    setAppSize(reset);
+    persistAppSize(reset);
+  }, []);
+
+  const handleResizeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const step = e.shiftKey ? 48 : 24;
+      let next: SavedAppSize | null = null;
+      if (e.key === 'ArrowRight') {
+        next = clampAppSize(appSize.width + step, appSize.height);
+      } else if (e.key === 'ArrowLeft') {
+        next = clampAppSize(appSize.width - step, appSize.height);
+      } else if (e.key === 'ArrowDown') {
+        next = clampAppSize(appSize.width, appSize.height + step);
+      } else if (e.key === 'ArrowUp') {
+        next = clampAppSize(appSize.width, appSize.height - step);
+      } else if (e.key === 'Home' || e.key === '0') {
+        next = clampAppSize(DEFAULT_APP_SIZE.width, DEFAULT_APP_SIZE.height);
+      }
+      if (next) {
+        e.preventDefault();
+        setAppSize(next);
+        persistAppSize(next);
+      }
+    },
+    [appSize.width, appSize.height]
+  );
+
   const tourActionLabel = tutorial.isPlaying
     ? 'Pause tutorial'
     : tutorial.isFinished
@@ -239,14 +410,47 @@ export const LandingPage: React.FC = () => {
     }
   }, [tutorial]);
 
+  const calcFrameStyle = useMemo<React.CSSProperties | undefined>(
+    () =>
+      isAppMode
+        ? ({
+            '--calc-app-w': `${appSize.width}px`,
+            '--calc-app-h': `${appSize.height}px`,
+          } as React.CSSProperties)
+        : undefined,
+    [isAppMode, appSize.width, appSize.height]
+  );
+
   return (
     <div
       ref={pageRootRef}
       className={`landing-page ${isAppMode ? 'is-app-mode' : ''}`}
+      data-page-theme={pageTheme}
     >
-      {/* Top Bar: Brand + GitHub + Moon/Sun Icon Toggle (fades away in `/app` mode) */}
-      <div className="fade-collapse-shell site-header-shell" inert={isAppMode}>
-        <div className="fade-collapse-inner">
+      {/* Top-Left Minimize Icon in Expanded (`/app`) Mode */}
+      {isAppMode && (
+        <a
+          href={homeRouteHref}
+          className="app-minimize-btn"
+          onClick={handleExitAppMode}
+          aria-label="Minimize app mode"
+          title="Minimize to landing page"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M6.4 2.6v3.8H2.6M9.6 13.4V9.6h3.8M2.2 2.2l4.2 4.2M13.8 13.8 9.6 9.6"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </a>
+      )}
+
+      {/* Top Band: Site Header + "Simply. Math" Headline (fades away in `/app` mode) */}
+      <div className="landing-top-band" inert={isAppMode}>
+        <div className="landing-band-inner landing-top-inner">
           <header className="site-header">
             <a href="#top" className="site-brand" aria-label="on/c home">
               on<span className="site-brand-slash">/</span>c
@@ -296,155 +500,181 @@ export const LandingPage: React.FC = () => {
               </button>
             </nav>
           </header>
+
+          <div className="hero-title-wrap">
+            <h1 className="hero-headline">
+              Simply. <span className="hero-headline-thin">Math</span>
+            </h1>
+          </div>
         </div>
       </div>
 
-      {/* Hero + Calculator Stage (calculator stays live & glides into centered focus on `/app`) */}
+      {/* Center Stage: Calculator (always centered in viewport; resizable in `/app` mode) */}
       <section
         id="top"
-        className="site-hero"
-        aria-label={isAppMode ? 'on/c calculator' : 'Live web calculator and interactive tour'}
+        className="landing-center-stage"
+        aria-label={isAppMode ? 'on/c calculator' : 'Live web calculator'}
       >
-        <div className="fade-collapse-shell hero-intro-shell" inert={isAppMode}>
-          <div className="fade-collapse-inner hero-intro-inner">
-            <h1 className="hero-headline">
-              Beautiful calculator that blends math with text.
-            </h1>
-            <p className="hero-subhead">
-              Type naturally—chain <code>ans</code> variables, convert currencies, insert{' '}
-              <code>/char</code> symbols, and organize sheets. Use <strong>on/c</strong> right here
-              in your browser or install the native macOS app.
-            </p>
+        <div
+          ref={calcFrameRef}
+          className={`hero-calculator-frame ${isResizing ? 'is-resizing' : ''}`}
+          style={calcFrameStyle}
+        >
+          <App
+            ref={appRef}
+            embeddedInSite
+            onUserInteract={tutorial.yieldToVisitor}
+            onCalcThemeChange={handleCalcThemeChange}
+          />
 
-            <div className="hero-actions">
-              <a
-                href={RELEASES_URL}
-                className="hero-cta-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                  <path d="M11.6 8.5c0-1.7 1.4-2.5 1.5-2.6-.8-1.2-2.1-1.3-2.5-1.4-1.1-.1-2.1.6-2.6.6-.6 0-1.4-.6-2.3-.6-1.2 0-2.3.7-2.9 1.8-1.3 2.2-.3 5.4.9 7.2.6.9 1.3 1.8 2.2 1.8.9 0 1.3-.6 2.4-.6 1.1 0 1.4.6 2.4.6 1 0 1.6-.9 2.2-1.7.7-1 1-2 1-2.1-.1 0-2.3-.9-2.3-3ZM9.8 3.2c.5-.6.8-1.4.7-2.2-.7 0-1.6.5-2.1 1.1-.4.5-.8 1.4-.7 2.2.8.1 1.6-.4 2.1-1.1Z" />
+          {isAppMode && (
+            <div
+              role="button"
+              tabIndex={0}
+              className="calc-resize-handle"
+              aria-label="Resize calculator"
+              title="Drag to resize · Double-click to reset"
+              onPointerDown={handleResizePointerDown}
+              onPointerMove={handleResizePointerMove}
+              onPointerUp={finishResizeDrag}
+              onPointerCancel={finishResizeDrag}
+              onDoubleClick={handleResizeReset}
+              onKeyDown={handleResizeKeyDown}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M10.5 3.5 3.5 10.5M10.5 7.5l-3 3"
+                  stroke="currentColor"
+                  strokeWidth="1.35"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Bottom Band: Play/Pause/Loop + Expand Icons, Download + Brew Stack, & Footer */}
+      <div className="landing-bottom-band" inert={isAppMode}>
+        <div className="landing-band-inner landing-bottom-inner">
+          <div className="calc-under-controls" role="group" aria-label="Calculator controls">
+            <button
+              type="button"
+              className="calc-under-icon-btn"
+              onClick={handleTourPrimaryControl}
+              aria-label={tourActionLabel}
+              title={tourActionLabel}
+            >
+              {tutorial.isPlaying ? (
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <rect x="3.5" y="3" width="3" height="10" rx="0.9" />
+                  <rect x="9.5" y="3" width="3" height="10" rx="0.9" />
                 </svg>
-                <span>Download for macOS</span>
-              </a>
+              ) : tutorial.isFinished ? (
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M2.8 8a5.2 5.2 0 1 0 1.4-3.6L2.6 6"
+                    stroke="currentColor"
+                    strokeWidth="1.55"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M2.5 2.8V6h3.2"
+                    stroke="currentColor"
+                    strokeWidth="1.55"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M4.6 3.1a.8.8 0 0 1 1.2-.7l7.1 4.9a.8.8 0 0 1 0 1.4l-7.1 4.9a.8.8 0 0 1-1.2-.7V3.1Z" />
+                </svg>
+              )}
+            </button>
 
+            <a
+              href={appRouteHref}
+              className="calc-under-icon-btn"
+              onClick={handleEnterAppMode}
+              aria-label="Expand calculator to app mode"
+              title="Expand (/app)"
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M10 2.5h3.5V6M6 13.5H2.5V10M13.5 2.5 9.3 6.7M2.5 13.5l4.2-4.2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
+
+          <div className="hero-install-stack">
+            <a
+              href={RELEASES_URL}
+              className="hero-cta-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M11.6 8.5c0-1.7 1.4-2.5 1.5-2.6-.8-1.2-2.1-1.3-2.5-1.4-1.1-.1-2.1.6-2.6.6-.6 0-1.4-.6-2.3-.6-1.2 0-2.3.7-2.9 1.8-1.3 2.2-.3 5.4.9 7.2.6.9 1.3 1.8 2.2 1.8.9 0 1.3-.6 2.4-.6 1.1 0 1.4.6 2.4.6 1 0 1.6-.9 2.2-1.7.7-1 1-2 1-2.1-.1 0-2.3-.9-2.3-3ZM9.8 3.2c.5-.6.8-1.4.7-2.2-.7 0-1.6.5-2.1 1.1-.4.5-.8 1.4-.7 2.2.8.1 1.6-.4 2.1-1.1Z" />
+              </svg>
+              <span>Download for macOS</span>
+            </a>
+
+            <div className="brew-copy-wrap">
               <button
                 type="button"
                 className="hero-brew-pill"
+                data-copied={copyState === 'copied' ? '' : undefined}
+                data-failed={copyState === 'failed' ? '' : undefined}
                 onClick={() => void handleCopyBrew()}
+                aria-label={`Copy Homebrew command: ${BREW_COMMAND}`}
                 title="Copy Homebrew install command"
               >
-                <span>{BREW_COMMAND}</span>
-                <span className="brew-copy-tag">{copiedBrew ? 'Copied ✓' : 'Copy'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-calculator-wrap">
-          <div className="hero-calculator-frame">
-            <App
-              ref={appRef}
-              embeddedInSite
-              onUserInteract={tutorial.yieldToVisitor}
-              onCalcThemeChange={handleCalcThemeChange}
-            />
-          </div>
-
-          <div className="fade-collapse-shell tour-chrome-shell" inert={isAppMode}>
-            <div className="fade-collapse-inner tour-chrome-inner">
-              {/* WCAG 2.2.2 Accessible Tour Bar: Play/Pause/Replay icon button + Steps + App mode */}
-              <div className="tour-bar" role="region" aria-label="Interactive live demo controls">
-                <div className="tour-bar-left">
-                  <button
-                    type="button"
-                    className="tour-ctrl-btn tour-icon-btn"
-                    onClick={handleTourPrimaryControl}
-                    aria-label={tourActionLabel}
-                    title={tourActionLabel}
-                  >
-                    {tutorial.isPlaying ? (
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <rect x="3.5" y="3" width="3" height="10" rx="0.9" />
-                        <rect x="9.5" y="3" width="3" height="10" rx="0.9" />
-                      </svg>
-                    ) : tutorial.isFinished ? (
-                      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <path
-                          d="M2.8 8a5.2 5.2 0 1 0 1.4-3.6L2.6 6"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M2.5 2.8V6h3.2"
-                          stroke="currentColor"
-                          strokeWidth="1.55"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : (
-                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                        <path d="M4.6 3.1a.8.8 0 0 1 1.2-.7l7.1 4.9a.8.8 0 0 1 0 1.4l-7.1 4.9a.8.8 0 0 1-1.2-.7V3.1Z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-
-                <div className="tour-bar-steps" role="group" aria-label="Demo chapters">
-                  {TOUR_STEPS.map((step) => {
-                    const isCurrent = tutorial.activeStep === step.id;
-                    return (
-                      <button
-                        key={step.id}
-                        type="button"
-                        className={`tour-step-btn ${isCurrent ? 'is-current' : ''}`}
-                        title={step.shortHint}
-                        onClick={() => tutorial.jumpToStep(step.id)}
-                      >
-                        {step.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="tour-bar-right">
-                  <a
-                    href={appRouteHref}
-                    className="tour-ctrl-btn app-mode-btn"
-                    onClick={handleEnterAppMode}
-                    title="Focus calculator and fade away page chrome (/app)"
-                  >
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <code className="brew-cmd-text">{BREW_COMMAND}</code>
+                <span className="brew-copy-icon" aria-hidden="true">
+                  {copyState === 'copied' ? (
+                    <svg width="13.5" height="13.5" viewBox="0 0 16 16" fill="none">
                       <path
-                        d="M10 2.5h3.5V6M6 13.5H2.5V10M13.5 2.5 9.3 6.7M2.5 13.5l4.2-4.2"
+                        d="M3.2 8.4 6.5 11.7 12.8 4.6"
                         stroke="currentColor"
-                        strokeWidth="1.5"
+                        strokeWidth="1.65"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
-                    <span>App mode</span>
-                  </a>
-                </div>
-              </div>
-
-              <p className="tour-caption">
-                {tutorial.isPlaying
-                  ? 'Watching live demo — click or type anywhere in the calculator to take over immediately.'
-                  : 'Live web calculator — all sheets, archives & settings save automatically in your browser.'}
-              </p>
+                  ) : (
+                    <svg width="13.5" height="13.5" viewBox="0 0 16 16" fill="none">
+                      <rect
+                        x="5.5"
+                        y="5.5"
+                        width="8"
+                        height="8"
+                        rx="1.6"
+                        stroke="currentColor"
+                        strokeWidth="1.35"
+                      />
+                      <path
+                        d="M10.5 5.5V3.9A1.4 1.4 0 0 0 9.1 2.5H3.9A1.4 1.4 0 0 0 2.5 3.9v5.2a1.4 1.4 0 0 0 1.4 1.4h1.6"
+                        stroke="currentColor"
+                        strokeWidth="1.35"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+              </button>
+              <span className="sr-only" role="status">
+                {copyStatusText}
+              </span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Minimal Footer with Expandable Privacy Panel */}
-      <div className="fade-collapse-shell site-footer-shell" inert={isAppMode}>
-        <div className="fade-collapse-inner">
           <footer className="site-footer-wrap">
             <div
               ref={privacyDrawerRef}
