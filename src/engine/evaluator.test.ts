@@ -26,9 +26,17 @@ import {
 import {
   createStarterTabs,
   DEFAULT_SETTINGS,
+  deriveCalcThemeFromPageTheme,
+  derivePageThemeFromCalcTheme,
   loadPageTheme,
   resolveEffectiveScheme,
 } from './storage';
+import {
+  getAppRouteHref,
+  getHomeRouteHref,
+  isAppRouteLocation,
+  normalizeBasePrefix,
+} from './routing';
 
 if (typeof (globalThis as Record<string, unknown>).Temporal === 'undefined') {
   (globalThis as Record<string, unknown>).Temporal = Temporal;
@@ -392,5 +400,30 @@ describe('on/c Numi evaluation engine', () => {
     expect(evalRows[6].formatted).toBe('€378');
     expect(evalRows[7].formatted).toBe('€1 143');
     expect(evalRows[9].formatted).toBe('0.5');
+  });
+
+  it('flips page and calculator themes inversely and resolves /app routes across base paths', () => {
+    expect(derivePageThemeFromCalcTheme('dark', false)).toBe('light');
+    expect(derivePageThemeFromCalcTheme('light', false)).toBe('dark');
+    expect(derivePageThemeFromCalcTheme('system', true)).toBe('light');
+    expect(derivePageThemeFromCalcTheme('system', false)).toBe('dark');
+
+    expect(deriveCalcThemeFromPageTheme('light')).toBe('dark');
+    expect(deriveCalcThemeFromPageTheme('dark')).toBe('light');
+
+    expect(normalizeBasePrefix('/')).toBe('');
+    expect(normalizeBasePrefix('./')).toBe('');
+    expect(normalizeBasePrefix('/on-c/')).toBe('/on-c');
+
+    expect(getAppRouteHref('/')).toBe('/app');
+    expect(getAppRouteHref('/on-c/')).toBe('/on-c/app');
+    expect(getHomeRouteHref('/on-c/')).toBe('/on-c/');
+
+    expect(isAppRouteLocation('/app', '', '/')).toBe(true);
+    expect(isAppRouteLocation('/app/', '', '/')).toBe(true);
+    expect(isAppRouteLocation('/on-c/app', '', '/on-c/')).toBe(true);
+    expect(isAppRouteLocation('/on-c/', '?mode=app', '/on-c/')).toBe(true);
+    expect(isAppRouteLocation('/on-c/', '', '/on-c/')).toBe(false);
+    expect(isAppRouteLocation('/', '', '/')).toBe(false);
   });
 });

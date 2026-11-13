@@ -249,6 +249,7 @@ export const HelpDialog = forwardRef<HelpDialogHandle, HelpDialogProps>(
                 spellCheck={false}
                 autoComplete="off"
                 className="help-search-input"
+                data-tour-target="help-search"
                 placeholder="Search syntax (ans, sek, %, sin, ---)…"
                 aria-label="Search syntax and operations"
                 value={query}
@@ -277,7 +278,12 @@ export const HelpDialog = forwardRef<HelpDialogHandle, HelpDialogProps>(
             </search>
 
             <form method="dialog" className="help-close-form">
-              <button type="submit" className="icon-btn help-close-btn" aria-label="Close help">
+              <button
+                type="submit"
+                className="icon-btn help-close-btn"
+                data-tour-target="help-close"
+                aria-label="Close help"
+              >
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path
                     d="M4 4l8 8M12 4l-8 8"
@@ -314,6 +320,7 @@ export const HelpDialog = forwardRef<HelpDialogHandle, HelpDialogProps>(
                 key={cat.id}
                 type="button"
                 className="topic-chip"
+                data-tour-target={`help-topic-${cat.id}`}
                 aria-pressed={selectedCategories.has(cat.id)}
                 title={cat.shortDesc}
                 onClick={(e) => toggleCategory(cat.id, e.currentTarget)}

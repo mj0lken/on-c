@@ -3,14 +3,11 @@ import { App } from './App';
 import { LandingPage } from './components/LandingPage';
 
 export const RootShell: React.FC = () => {
-  const isStandaloneApp = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    if ('__TAURI_INTERNALS__' in window) return true;
-    const params = new URLSearchParams(window.location.search);
-    return params.get('mode') === 'app';
+  const isNativeTauriApp = useMemo(() => {
+    return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
   }, []);
 
-  if (isStandaloneApp) {
+  if (isNativeTauriApp) {
     return <App />;
   }
 

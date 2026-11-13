@@ -87,6 +87,7 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
           <button
             type="button"
             className="flip-back-btn"
+            data-tour-target="settings-back"
             onClick={onFlipBack}
             title="Rotate 180° back to calculator (Esc)"
           >
@@ -102,7 +103,12 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
             <span className="setting-label">Theme</span>
             <span className="setting-desc">Light red accent or Numi dark</span>
           </div>
-          <div className="segmented-control" role="radiogroup" aria-label="Appearance theme">
+          <div
+            className="segmented-control"
+            data-tour-target="settings-theme-group"
+            role="radiogroup"
+            aria-label="Appearance theme"
+          >
             {(
               [
                 { value: 'light', label: 'Light' },

@@ -2095,3 +2095,31 @@ dialog::backdrop {
   color: var(--result-color);
   font-weight: 500;
 }
+
+/* Live Tutorial Typing Caret & Simulated Button Press Highlight */
+.tour-typing-caret {
+  display: inline-block;
+  width: 1.5px;
+  height: 1.05em;
+  margin-inline-start: 1px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent);
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: tour-caret-blink 0.9s steps(2, start) infinite;
+  }
+}
+
+@keyframes tour-caret-blink {
+  to {
+    opacity: 0.15;
+  }
+}
+
+[data-tour-pressed='true'] {
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+  scale: 0.94;
+  transition: scale 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}

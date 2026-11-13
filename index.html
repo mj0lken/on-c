@@ -18,23 +18,28 @@
     <script>
       try {
         var isTauri = '__TAURI_INTERNALS__' in window;
-        var saved = localStorage.getItem(
-          isTauri ? 'onc-calc-color-scheme' : 'onc-page-color-scheme'
-        );
-        var resolved =
-          saved === 'system'
-            ? 'light dark'
-            : saved === 'dark'
-              ? 'dark'
-              : saved === 'light'
+        var resolved = 'light';
+        if (isTauri) {
+          var calcSaved = localStorage.getItem('onc-calc-color-scheme');
+          resolved =
+            calcSaved === 'system'
+              ? 'light dark'
+              : calcSaved === 'light'
                 ? 'light'
-                : isTauri
-                  ? 'dark'
-                  : 'light';
+                : 'dark';
+        } else {
+          var pageSaved = localStorage.getItem('onc-page-color-scheme');
+          if (pageSaved === 'dark' || pageSaved === 'light') {
+            resolved = pageSaved;
+          } else {
+            var webCalc = localStorage.getItem('onc-calc-color-scheme');
+            resolved = webCalc === 'light' ? 'dark' : 'light';
+          }
+        }
         document.querySelector('meta[name="color-scheme"]').content = resolved;
       } catch (e) {}
     </script>
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
     <title>on/c — Natural-language notepad calculator</title>
   </head>
   <body>

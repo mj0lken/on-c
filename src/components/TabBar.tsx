@@ -147,6 +147,7 @@ export const TabBar: React.FC<TabBarProps> = ({
           <button
             type="button"
             className="icon-btn help-cmd-btn"
+            data-tour-target="help-btn"
             onClick={onOpenHelp}
             title="Syntax Reference (/help)"
             aria-label="/help — Syntax Reference"
@@ -157,6 +158,7 @@ export const TabBar: React.FC<TabBarProps> = ({
           <button
             type="button"
             className="icon-btn"
+            data-tour-target="settings-btn"
             onClick={onFlipToSettings}
             title="Preferences (⌘,)"
             aria-label="Preferences"

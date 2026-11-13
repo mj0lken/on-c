@@ -14,6 +14,7 @@ collected) or install the native borderless macOS app built with Tauri v2.
 </p>
 
 **[Live Web App & Interactive Tour](https://mj0lken.github.io/on-c/)** ·
+**[Focus Mode (`/app`)](https://mj0lken.github.io/on-c/app)** ·
 **[Download for Apple Silicon](https://github.com/mj0lken/on-c/releases/latest)** · macOS 13 or
 later · free and open source (MIT)
 
@@ -111,9 +112,11 @@ src/
     archive.ts              Temporal-backed 7d / 30d / 90d tab archive & auto-pruning
     tabNaming.ts            Collision-free 3-char IDs (#k4m) & Line-1 # heading auto-titling
     exporter.ts             Markdown (.md), CSV (.csv) & aligned clipboard formatters
-    storage.ts              Independent page vs. calculator theme & localStorage persistence
+    routing.ts              Base-path-aware `/` & `/app` focus mode route helpers
+    storage.ts              Coupled inverse page/calculator theme & localStorage persistence
   components/
-    LandingPage.tsx         Numi-style landing page, page theme toggle & interactive showcase
+    LandingPage.tsx         Numi-style landing page, `/app` clutter-free mode & privacy drawer
+    TutorialCursor.tsx      Top-layer animated pointer cursor & click ripple for the live tour
     CalculatorSheet.tsx     Pixel-aligned monospace sheet editor & click-to-reference results
     TabBar.tsx              Borderless macOS titlebar, tabs & inline rename
     SymbolToolbar.tsx       Bottom-left /char searchable math symbol popover

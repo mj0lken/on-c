@@ -60,7 +60,8 @@ interface HistorySnapshot {
 
 export interface AppHandle {
   prepareTourSheet: (initialRows: SheetRow[], useDedicatedTab: boolean) => void;
-  setTourRows: (rows: SheetRow[]) => void;
+  setTourRows: (rows: SheetRow[], typingRowId?: string | null) => void;
+  setTourTypingRowId: (rowId: string | null) => void;
   insertExpressionFromSite: (example: string) => void;
   openCharPickerForTour: () => void;
   setCharSearchForTour: (query: string) => void;
@@ -70,18 +71,21 @@ export interface AppHandle {
   closeHelpForTour: () => void;
   setFlippedForTour: (flipped: boolean) => void;
   setSettingsPatchForTour: (patch: Partial<CalculatorSettings>) => void;
+  setThemeFromSite: (theme: ThemePreference) => void;
+  getCalcTheme: () => ThemePreference;
   focusLastRow: () => void;
 }
 
 export interface AppProps {
   embeddedInSite?: boolean;
   onUserInteract?: () => void;
+  onCalcThemeChange?: (theme: ThemePreference) => void;
 }
 
 const LIVE_TOUR_TAB_ID = 'tab-live-tour';
 
 export const App = forwardRef<AppHandle, AppProps>(
-  ({ embeddedInSite = false, onUserInteract }, ref) => {
+  ({ embeddedInSite = false, onUserInteract, onCalcThemeChange }, ref) => {
     const [settings, setSettings] = useState<CalculatorSettings>(loadSavedSettings);
     const [archivedTabs, setArchivedTabs] = useState<ArchivedTab[]>(() =>
       loadSavedArchivedTabs(settings.archiveRetentionDays)
@@ -94,6 +98,7 @@ export const App = forwardRef<AppHandle, AppProps>(
     const [isFlipped, setIsFlipped] = useState(false);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const [isTourHelpMode, setIsTourHelpMode] = useState(false);
+    const [tourTypingRowId, setTourTypingRowId] = useState<string | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
 
     const isTauri = useMemo(
@@ -499,9 +504,12 @@ export const App = forwardRef<AppHandle, AppProps>(
           });
           setActiveTabId(LIVE_TOUR_TAB_ID);
         },
-        setTourRows: (rows: SheetRow[]) => {
+        setTourRows: (rows: SheetRow[], typingRowId?: string | null) => {
           const targetId = tourTargetTabIdRef.current ?? activeTab.id;
           const safeRows = rows.length > 0 ? rows : [{ id: 't-1', text: '' }];
+          if (typingRowId !== undefined) {
+            setTourTypingRowId(typingRowId);
+          }
           setTabs((prev) =>
             prev.map((t) => {
               if (t.id !== targetId) return t;
@@ -515,8 +523,12 @@ export const App = forwardRef<AppHandle, AppProps>(
             })
           );
         },
+        setTourTypingRowId: (rowId: string | null) => {
+          setTourTypingRowId(rowId);
+        },
         insertExpressionFromSite: (example: string) => {
           markVisitorEdited();
+          setTourTypingRowId(null);
           handleInsertExample(example);
           requestAnimationFrame(() => {
             sheetRef.current?.focusCurrentCursor();
@@ -549,12 +561,23 @@ export const App = forwardRef<AppHandle, AppProps>(
         setSettingsPatchForTour: (patch: Partial<CalculatorSettings>) => {
           setSettings((prev) => ({ ...prev, ...patch }));
         },
+        setThemeFromSite: (theme: ThemePreference) => {
+          setSettings((prev) => ({ ...prev, theme }));
+        },
+        getCalcTheme: () => settings.theme,
         focusLastRow: () => {
           const lastIdx = Math.max(0, activeTab.rows.length - 1);
           sheetRef.current?.focusRow(lastIdx);
         },
       }),
-      [tabs, archivedTabs, activeTab.id, activeTab.rows.length, handleInsertExample]
+      [
+        tabs,
+        archivedTabs,
+        activeTab.id,
+        activeTab.rows.length,
+        settings.theme,
+        handleInsertExample,
+      ]
     );
 
     useEffect(() => {
@@ -641,10 +664,21 @@ export const App = forwardRef<AppHandle, AppProps>(
       (e: React.SyntheticEvent) => {
         if (e.nativeEvent.isTrusted) {
           markVisitorEdited();
+          setTourTypingRowId(null);
           onUserInteract?.();
         }
       },
       [onUserInteract]
+    );
+
+    const handleUpdateSettings = useCallback(
+      (patch: Partial<CalculatorSettings>) => {
+        setSettings((prev) => ({ ...prev, ...patch }));
+        if (patch.theme !== undefined) {
+          onCalcThemeChange?.(patch.theme);
+        }
+      },
+      [onCalcThemeChange]
     );
 
     const openManualHelp = useCallback(() => {
@@ -694,6 +728,7 @@ export const App = forwardRef<AppHandle, AppProps>(
                 rows={activeTab.rows}
                 evaluatedRows={evaluatedRows}
                 nextAutoVarIndex={activeTab.nextAutoVarIndex}
+                tourTypingRowId={tourTypingRowId}
                 onUpdateRows={updateActiveTabRows}
                 onOpenHelp={openManualHelp}
                 onOpenCharPicker={() => symbolToolbarRef.current?.openPicker()}
@@ -742,7 +777,7 @@ export const App = forwardRef<AppHandle, AppProps>(
                 fxState={fxState}
                 isRefreshingFx={isRefreshingFx}
                 archivedTabs={archivedTabs}
-                onUpdateSettings={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+                onUpdateSettings={handleUpdateSettings}
                 onRefreshRates={() => void handleRefreshRates(true)}
                 onRestoreArchivedTab={handleRestoreArchivedTab}
                 onDeleteArchivedTab={handleDeleteArchivedTab}

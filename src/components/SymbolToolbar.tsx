@@ -191,6 +191,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                 ref={moreBtnRef}
                 type="button"
                 className="sym-btn sym-more-btn"
+                data-tour-target="char-btn"
                 title="Search symbols & operators (/char)"
                 aria-label="/char — Search math symbols"
                 aria-expanded={isOpen}
@@ -256,6 +257,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                 spellCheck={false}
                 autoComplete="off"
                 className="symbol-search-input"
+                data-tour-target="char-search"
                 placeholder="Search symbols (deg, root, pi, eur)…"
                 aria-label="Search symbols and operators"
                 value={query}
@@ -304,6 +306,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                     }}
                     type="button"
                     className="symbol-list-item"
+                    data-tour-target={`char-item-${item.id}`}
                     onClick={() => handlePickSymbol(item)}
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowDown') {

@@ -36,6 +36,7 @@ interface CalculatorSheetProps {
   rows: SheetRow[];
   evaluatedRows: EvaluatedRow[];
   nextAutoVarIndex: number;
+  tourTypingRowId?: string | null;
   onUpdateRows: (newRows: SheetRow[], newNextAutoVarIndex?: number, pushHistory?: boolean) => void;
   onOpenHelp: () => void;
   onOpenCharPicker: () => void;
@@ -53,6 +54,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
       rows,
       evaluatedRows,
       nextAutoVarIndex,
+      tourTypingRowId = null,
       onUpdateRows,
       onOpenHelp,
       onOpenCharPicker,
@@ -509,6 +511,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
   return (
     <div
       className="sheet-scroller"
+      data-tour-target="sheet"
       role="tabpanel"
       aria-labelledby={`tab-${tabId}`}
       onClick={handleEmptyCanvasClick}
@@ -521,13 +524,15 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
           const isHeading = ev?.kind === 'heading';
           const isRejected = rejectedRowId === row.id;
           const isCopied = copiedRowId === row.id;
+          const showTourCaret = tourTypingRowId === row.id;
 
           return (
             <div
               key={row.id}
+              data-tour-row={row.id}
               className={[
                 'calc-row',
-                isFocused ? 'is-focused' : '',
+                isFocused || showTourCaret ? 'is-focused' : '',
                 isSeparator ? 'is-separator-row' : '',
                 isHeading ? 'is-heading-row' : '',
               ]
@@ -546,7 +551,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
             >
               {isSeparator && <div className="visual-separator-rule" aria-hidden="true" />}
 
-              <div className={`expr-cell ${isSeparator && !isFocused ? 'separator-unfocused' : ''}`}>
+              <div className={`expr-cell ${isSeparator && !isFocused && !showTourCaret ? 'separator-unfocused' : ''}`}>
                 <div className="expr-highlight-layer" aria-hidden="true">
                   {ev && ev.highlights.length > 0 ? (
                     <>
@@ -555,6 +560,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
                           {span.text}
                         </span>
                       ))}
+                      {showTourCaret && <span className="tour-typing-caret" />}
                       {idx === 0 && isBareHeadingPrompt(row.text) && (
                         <span className="tok-placeholder">
                           {row.text.endsWith(' ') ? '' : ' '}
@@ -563,11 +569,14 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
                       )}
                     </>
                   ) : (
-                    <span className="tok-placeholder">
-                      {idx === 0 && rows.length === 1 && row.text.length === 0
-                        ? 'Type a calculation, /char, or /help…'
-                        : '\u200B'}
-                    </span>
+                    <>
+                      {showTourCaret && <span className="tour-typing-caret" />}
+                      <span className="tok-placeholder">
+                        {idx === 0 && rows.length === 1 && row.text.length === 0
+                          ? 'Type a calculation, /char, or /help…'
+                          : '\u200B'}
+                      </span>
+                    </>
                   )}
                 </div>
 

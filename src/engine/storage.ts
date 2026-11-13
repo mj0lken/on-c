@@ -185,11 +185,41 @@ export function persistString(key: string, value: string): void {
   }
 }
 
-export function loadPageTheme(): ThemePreference {
+export function resolveEffectiveScheme(
+  theme: ThemePreference,
+  osIsDark: boolean
+): 'light' | 'dark' {
+  if (theme === 'system') {
+    return osIsDark ? 'dark' : 'light';
+  }
+  return theme;
+}
+
+export function derivePageThemeFromCalcTheme(
+  calcTheme: ThemePreference,
+  osIsDark: boolean
+): 'light' | 'dark' {
+  const effectiveCalc = resolveEffectiveScheme(calcTheme, osIsDark);
+  return effectiveCalc === 'dark' ? 'light' : 'dark';
+}
+
+export function deriveCalcThemeFromPageTheme(pageTheme: 'light' | 'dark'): 'light' | 'dark' {
+  return pageTheme === 'light' ? 'dark' : 'light';
+}
+
+export function loadPageTheme(): 'light' | 'dark' {
+  const osIsDark =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)').matches
+      : false;
   try {
-    const saved = localStorage.getItem(PAGE_COLOR_SCHEME_KEY);
-    if (saved === 'light' || saved === 'dark' || saved === 'system') {
-      return saved;
+    const savedCalc = localStorage.getItem(CALC_COLOR_SCHEME_KEY);
+    if (savedCalc === 'light' || savedCalc === 'dark' || savedCalc === 'system') {
+      return derivePageThemeFromCalcTheme(savedCalc, osIsDark);
+    }
+    const savedPage = localStorage.getItem(PAGE_COLOR_SCHEME_KEY);
+    if (savedPage === 'light' || savedPage === 'dark') {
+      return savedPage;
     }
   } catch {
     // Ignore storage read failure
@@ -205,16 +235,6 @@ export function applyPageThemeToMeta(theme: ThemePreference): void {
     }
   }
   persistString(PAGE_COLOR_SCHEME_KEY, theme);
-}
-
-export function resolveEffectiveScheme(
-  theme: ThemePreference,
-  osIsDark: boolean
-): 'light' | 'dark' {
-  if (theme === 'system') {
-    return osIsDark ? 'dark' : 'light';
-  }
-  return theme;
 }
 
 export function syncMetaColorScheme(theme: ThemePreference, isTauri = false): void {
