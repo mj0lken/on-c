@@ -11,8 +11,8 @@
 }
 
 :root {
-  /* Light Theme (Clean Swiss Surface + Red Wordmark & Accents) */
-  --bg-stage-light: #ededf0;
+  /* Light Theme (Crisp White Numi Page Surface + Red Wordmark & Accents) */
+  --bg-stage-light: #ffffff;
   --bg-surface-light: #ffffff;
   --bg-subtle-light: #f4f4f6;
   --bg-hover-light: rgba(0, 0, 0, 0.045);
@@ -109,6 +109,38 @@
   --scrollbar-thumb: var(--scrollbar-thumb-light);
 
   @media (prefers-color-scheme: dark) {
+    &:not(:has(> head > meta[name='color-scheme'][content='light'])) {
+      --bg-stage: var(--bg-stage-dark);
+      --bg-surface: var(--bg-surface-dark);
+      --bg-subtle: var(--bg-subtle-dark);
+      --bg-hover: var(--bg-hover-dark);
+      --border-color: var(--border-color-dark);
+      --separator-rule: var(--separator-rule-dark);
+      --wordmark-color: var(--wordmark-dark);
+      --text-primary: var(--text-primary-dark);
+      --text-secondary: var(--text-secondary-dark);
+      --text-muted: var(--text-muted-dark);
+      --tab-active-bg: var(--tab-active-bg-dark);
+      --tab-active-fg: var(--tab-active-fg-dark);
+      --accent: var(--accent-dark);
+      --accent-soft: var(--accent-soft-dark);
+      --result-color: var(--result-color-dark);
+      --tok-number: var(--tok-number-dark);
+      --tok-op: var(--tok-op-dark);
+      --tok-kw: var(--tok-kw-dark);
+      --tok-unit: var(--tok-unit-dark);
+      --tok-curr: var(--tok-curr-dark);
+      --tok-ans: var(--tok-ans-dark);
+      --tok-var: var(--tok-var-dark);
+      --tok-fn: var(--tok-fn-dark);
+      --tok-label: var(--tok-label-dark);
+      --tok-comment: var(--tok-comment-dark);
+      --scrollbar-track: var(--scrollbar-track-dark);
+      --scrollbar-thumb: var(--scrollbar-thumb-dark);
+    }
+  }
+
+  &:has(> head > meta[name='color-scheme'][content='dark']) {
     --bg-stage: var(--bg-stage-dark);
     --bg-surface: var(--bg-surface-dark);
     --bg-subtle: var(--bg-subtle-dark);
@@ -200,17 +232,117 @@ body,
   margin: 0;
   padding: 0;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   background: var(--bg-stage);
   color: var(--text-primary);
 }
 
+html:has(> body > #root > .app-stage),
+html:has(> body > #root > .app-stage) body,
+html:has(> body > #root > .app-stage) #root {
+  height: 100%;
+}
+
 html:has(.app-stage.is-tauri),
 html:has(.app-stage.is-tauri) body,
 html:has(.app-stage.is-tauri) #root {
   background: transparent;
+}
+
+/*
+ * Component-specific light/dark theme override (`component-specific-light-dark-theme`):
+ * Applied strictly to opaque calculator surfaces (`.calc-face`, `.help-dialog`, and popovers),
+ * never to backgroundless wrappers, and re-specifying inherited `<color>` properties (`color`,
+ * `accent-color`, `caret-color`, `scrollbar-color`) because `light-dark()` resolves at computed-value time.
+ */
+.calculator-theme-scope[data-calc-theme='dark']
+  :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
+  color-scheme: only dark;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  accent-color: var(--accent);
+  caret-color: var(--accent);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+  @supports not (color: light-dark(white, black)) {
+    --bg-surface: var(--bg-surface-dark);
+    --bg-subtle: var(--bg-subtle-dark);
+    --bg-hover: var(--bg-hover-dark);
+    --border-color: var(--border-color-dark);
+    --separator-rule: var(--separator-rule-dark);
+    --wordmark-color: var(--wordmark-dark);
+    --text-primary: var(--text-primary-dark);
+    --text-secondary: var(--text-secondary-dark);
+    --text-muted: var(--text-muted-dark);
+    --tab-active-bg: var(--tab-active-bg-dark);
+    --tab-active-fg: var(--tab-active-fg-dark);
+    --accent: var(--accent-dark);
+    --accent-soft: var(--accent-soft-dark);
+    --result-color: var(--result-color-dark);
+    --tok-number: var(--tok-number-dark);
+    --tok-op: var(--tok-op-dark);
+    --tok-kw: var(--tok-kw-dark);
+    --tok-unit: var(--tok-unit-dark);
+    --tok-curr: var(--tok-curr-dark);
+    --tok-ans: var(--tok-ans-dark);
+    --tok-var: var(--tok-var-dark);
+    --tok-fn: var(--tok-fn-dark);
+    --tok-label: var(--tok-label-dark);
+    --tok-comment: var(--tok-comment-dark);
+    --scrollbar-track: var(--scrollbar-track-dark);
+    --scrollbar-thumb: var(--scrollbar-thumb-dark);
+  }
+}
+
+.calculator-theme-scope[data-calc-theme='light']
+  :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
+  color-scheme: only light;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  accent-color: var(--accent);
+  caret-color: var(--accent);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+  @supports not (color: light-dark(white, black)) {
+    --bg-surface: var(--bg-surface-light);
+    --bg-subtle: var(--bg-subtle-light);
+    --bg-hover: var(--bg-hover-light);
+    --border-color: var(--border-color-light);
+    --separator-rule: var(--separator-rule-light);
+    --wordmark-color: var(--wordmark-light);
+    --text-primary: var(--text-primary-light);
+    --text-secondary: var(--text-secondary-light);
+    --text-muted: var(--text-muted-light);
+    --tab-active-bg: var(--tab-active-bg-light);
+    --tab-active-fg: var(--tab-active-fg-light);
+    --accent: var(--accent-light);
+    --accent-soft: var(--accent-soft-light);
+    --result-color: var(--result-color-light);
+    --tok-number: var(--tok-number-light);
+    --tok-op: var(--tok-op-light);
+    --tok-kw: var(--tok-kw-light);
+    --tok-unit: var(--tok-unit-light);
+    --tok-curr: var(--tok-curr-light);
+    --tok-ans: var(--tok-ans-light);
+    --tok-var: var(--tok-var-light);
+    --tok-fn: var(--tok-fn-light);
+    --tok-label: var(--tok-label-light);
+    --tok-comment: var(--tok-comment-light);
+    --scrollbar-track: var(--scrollbar-track-light);
+    --scrollbar-thumb: var(--scrollbar-thumb-light);
+  }
+}
+
+.calculator-theme-scope[data-calc-theme='system']
+  :is(.calc-face, .help-dialog, [popover].symbol-more-popover, [popover].export-menu-popover, [popover].help-info-popover) {
+  color-scheme: light dark;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  accent-color: var(--accent);
+  caret-color: var(--accent);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 ::selection {
@@ -255,16 +387,28 @@ html:has(.app-stage.is-tauri) #root {
   align-items: center;
   justify-content: center;
   padding: clamp(10px, 2.5vw, 24px);
+  text-align: left;
 }
 
 .app-stage.is-tauri {
   padding: 12px;
 }
 
+.app-stage.is-embedded-site {
+  height: auto;
+  padding: 0;
+}
+
 .calc-perspective {
+  position: relative;
   width: min(100%, 490px);
   height: min(100%, 660px);
   perspective: 2000px;
+}
+
+.app-stage.is-embedded-site .calc-perspective {
+  width: min(100%, 500px);
+  height: 550px;
 }
 
 .app-stage.is-tauri .calc-perspective {
@@ -1579,6 +1723,28 @@ dialog::backdrop {
 .help-dialog[open] {
   display: flex;
   flex-direction: column;
+}
+
+.calc-inline-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  border-radius: 12px;
+  background: rgba(12, 13, 16, 0.42);
+  backdrop-filter: blur(1.5px);
+}
+
+.help-dialog.is-inline-demo[open] {
+  position: absolute;
+  inset: 44px 16px 40px;
+  width: auto;
+  max-height: none;
+  margin: 0;
+  z-index: 25;
+}
+
+.help-dialog.is-inline-demo .help-dialog-inner {
+  max-height: 100%;
 }
 
 .help-dialog-inner {

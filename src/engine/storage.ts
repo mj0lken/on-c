@@ -17,10 +17,16 @@ export const TABS_STORAGE_KEY = 'onc-tabs-v1';
 export const ACTIVE_TAB_KEY = 'onc-active-tab-v1';
 export const ARCHIVED_TABS_KEY = 'onc-archived-tabs-v1';
 export const SETTINGS_STORAGE_KEY = 'onc-settings-v1';
-export const COLOR_SCHEME_KEY = 'onc-color-scheme';
+export const CALC_COLOR_SCHEME_KEY = 'onc-calc-color-scheme';
+export const PAGE_COLOR_SCHEME_KEY = 'onc-page-color-scheme';
+export const VISITOR_EDITED_KEY = 'onc-visitor-edited-v1';
+export const TOUR_COMPLETED_KEY = 'onc-tour-completed-v1';
+
+// Legacy alias kept for compatibility
+export const COLOR_SCHEME_KEY = CALC_COLOR_SCHEME_KEY;
 
 export const DEFAULT_SETTINGS: CalculatorSettings = {
-  theme: 'light',
+  theme: 'dark',
   precision: 2,
   defaultCurrency: 'USD',
   angleUnit: 'deg',
@@ -32,16 +38,16 @@ export const DEFAULT_SETTINGS: CalculatorSettings = {
 export function createStarterTabs(): CalculatorTab[] {
   const shortCode = generateUniqueShortCode();
   const rows: SheetRow[] = [
-    { id: 'r-1', text: '1 + 2', autoVar: 'ans1' },
-    { id: 'r-2', text: 'ans + 4' },
-    { id: 'r-3', text: 'ans + 5' },
+    { id: 'r-1', text: '# Studio Trip' },
+    { id: 'r-2', text: '120 + 45 * 3', autoVar: 'ans1' },
+    { id: 'r-3', text: 'ans - 15% // discount' },
     { id: 'r-4', text: '---' },
-    { id: 'r-5', text: 'Flight: $420' },
-    { id: 'r-6', text: 'Hotel: 280 EUR in USD' },
-    { id: 'r-7', text: 'sum + 12% // incl. tax' },
-    { id: 'r-8', text: '---' },
-    { id: 'r-9', text: '6 ft 2 in cm' },
-    { id: 'r-10', text: 'ans1 * sqrt 144' },
+    { id: 'r-5', text: '# Expenses in EUR' },
+    { id: 'r-6', text: 'Flight: $850 in EUR' },
+    { id: 'r-7', text: 'Hotel: 4 200 SEK in EUR' },
+    { id: 'r-8', text: 'sum' },
+    { id: 'r-9', text: '---' },
+    { id: 'r-10', text: 'Ramp angle: sin 30°' },
     { id: 'r-11', text: '' },
   ];
   return [
@@ -56,10 +62,29 @@ export function createStarterTabs(): CalculatorTab[] {
   ];
 }
 
+export function hasSavedVisitorData(): boolean {
+  try {
+    return (
+      localStorage.getItem(VISITOR_EDITED_KEY) === '1' ||
+      localStorage.getItem(TOUR_COMPLETED_KEY) === '1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function markVisitorEdited(): void {
+  persistString(VISITOR_EDITED_KEY, '1');
+}
+
+export function markTourCompleted(): void {
+  persistString(TOUR_COMPLETED_KEY, '1');
+}
+
 export function loadSavedSettings(): CalculatorSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    const savedScheme = localStorage.getItem(COLOR_SCHEME_KEY) as ThemePreference | null;
+    const savedScheme = localStorage.getItem(CALC_COLOR_SCHEME_KEY) as ThemePreference | null;
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<CalculatorSettings>;
       const retention: ArchiveRetentionDays =
@@ -75,7 +100,9 @@ export function loadSavedSettings(): CalculatorSettings {
         theme:
           savedScheme === 'light' || savedScheme === 'dark' || savedScheme === 'system'
             ? savedScheme
-            : parsed.theme ?? DEFAULT_SETTINGS.theme,
+            : parsed.theme === 'light' || parsed.theme === 'dark' || parsed.theme === 'system'
+              ? parsed.theme
+              : DEFAULT_SETTINGS.theme,
       };
     }
     if (savedScheme === 'light' || savedScheme === 'dark' || savedScheme === 'system') {
@@ -158,12 +185,44 @@ export function persistString(key: string, value: string): void {
   }
 }
 
-export function syncMetaColorScheme(theme: ThemePreference): void {
+export function loadPageTheme(): ThemePreference {
+  try {
+    const saved = localStorage.getItem(PAGE_COLOR_SCHEME_KEY);
+    if (saved === 'light' || saved === 'dark' || saved === 'system') {
+      return saved;
+    }
+  } catch {
+    // Ignore storage read failure
+  }
+  return 'light';
+}
+
+export function applyPageThemeToMeta(theme: ThemePreference): void {
   if (typeof document !== 'undefined') {
     const meta = document.querySelector('meta[name="color-scheme"]');
     if (meta) {
       meta.setAttribute('content', theme === 'system' ? 'light dark' : theme);
     }
   }
-  persistString(COLOR_SCHEME_KEY, theme);
+  persistString(PAGE_COLOR_SCHEME_KEY, theme);
+}
+
+export function resolveEffectiveScheme(
+  theme: ThemePreference,
+  osIsDark: boolean
+): 'light' | 'dark' {
+  if (theme === 'system') {
+    return osIsDark ? 'dark' : 'light';
+  }
+  return theme;
+}
+
+export function syncMetaColorScheme(theme: ThemePreference, isTauri = false): void {
+  if (isTauri && typeof document !== 'undefined') {
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    if (meta) {
+      meta.setAttribute('content', theme === 'system' ? 'light dark' : theme);
+    }
+  }
+  persistString(CALC_COLOR_SCHEME_KEY, theme);
 }

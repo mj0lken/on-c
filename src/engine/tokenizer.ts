@@ -193,10 +193,11 @@ export function highlightLine(
       continue;
     }
 
-    // Decimal / scientific numbers (with optional thousands commas like 2,800.50)
-    const numMatch = /^(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:_\d+)*(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?/i.exec(
-      rest
-    );
+    // Decimal / scientific numbers (with optional thousands commas `2,800.50` or spaces `4 200.50`)
+    const numMatch =
+      /^(?:\d{1,3}(?:,\d{3})+(?!\d)(?:\.\d+)?|\d{1,3}(?:[ \u00A0\u202F]\d{3})+(?!\d)(?:\.\d+)?|\d+(?:_\d+)*(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?/i.exec(
+        rest
+      );
     if (numMatch) {
       pushSpan('number', numMatch[0]);
       i += numMatch[0].length;

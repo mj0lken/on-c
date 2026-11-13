@@ -127,12 +127,13 @@ function lexExpression(raw: string, defaultCurrency: string): LexToken[] | null 
       continue;
     }
 
-    // Standard / scientific number (with optional thousands commas like 2,800.50, but NOT function comma `gcd(12, 18)`)
-    const numMatch = /^(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:_\d+)*(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?/i.exec(
-      rest
-    );
+    // Standard / scientific number (with optional thousands commas `2,800.50` or spaces `4 200.50`, but NOT function comma `gcd(12, 180)`)
+    const numMatch =
+      /^(?:\d{1,3}(?:,\d{3})+(?!\d)(?:\.\d+)?|\d{1,3}(?:[ \u00A0\u202F]\d{3})+(?!\d)(?:\.\d+)?|\d+(?:_\d+)*(?:\.\d+)?|\.\d+)(?:e[+-]?\d+)?/i.exec(
+        rest
+      );
     if (numMatch) {
-      const cleaned = numMatch[0].replace(/[,_]/g, '');
+      const cleaned = numMatch[0].replace(/[,_ \u00A0\u202F]/g, '');
       const val = Number(cleaned);
       if (Number.isNaN(val)) return null;
       tokens.push({ kind: 'num', value: val });

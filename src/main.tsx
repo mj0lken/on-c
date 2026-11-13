@@ -1,7 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import { RootShell } from './RootShell';
 import './styles/app.css';
+import './styles/landing.css';
 
 // Per modern-web-guidance `interest-triggered-tooltips`: wire ARIA + `popover="hint"` fallback before loading polyfills
 const ownedHintTriggers = new WeakSet<Element>();
@@ -118,7 +119,7 @@ void (async () => {
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <App />
+      <RootShell />
     </React.StrictMode>
   );
 })();

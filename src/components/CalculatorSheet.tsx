@@ -79,7 +79,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
     if (!pending) return;
     const input = inputRefs.current.get(pending.rowId);
     if (input) {
-      input.focus();
+      input.focus({ preventScroll: true });
       input.setSelectionRange(pending.start, pending.end);
       const idx = rows.findIndex((r) => r.id === pending.rowId);
       if (idx >= 0) {
@@ -120,7 +120,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
         const input = inputRefs.current.get(targetRow.id);
         if (input) {
           const pos = Math.min(cursorRef.current.start, targetRow.text.length);
-          input.focus();
+          input.focus({ preventScroll: true });
           input.setSelectionRange(pos, pos);
           setFocusedRowIndex(safeRowIdx);
         }
@@ -134,7 +134,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
         pendingFocusRef.current = { rowId: targetRow.id, start: pos, end: pos };
         const input = inputRefs.current.get(targetRow.id);
         if (input) {
-          input.focus();
+          input.focus({ preventScroll: true });
           input.setSelectionRange(pos, pos);
           setFocusedRowIndex(safeRowIdx);
           pendingFocusRef.current = null;

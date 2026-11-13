@@ -23,6 +23,12 @@ import {
   formatSheetAsMarkdown,
   formatSheetForClipboard,
 } from './exporter';
+import {
+  createStarterTabs,
+  DEFAULT_SETTINGS,
+  loadPageTheme,
+  resolveEffectiveScheme,
+} from './storage';
 
 if (typeof (globalThis as Record<string, unknown>).Temporal === 'undefined') {
   (globalThis as Record<string, unknown>).Temporal = Temporal;
@@ -367,5 +373,24 @@ describe('on/c Numi evaluation engine', () => {
     expect(clip).toContain('Flight: $420');
     expect(clip).toContain('= $770');
     expect(clip).toContain('Total');
+  });
+
+  it('defaults calculator theme to dark, page theme to light, and evaluates starter tutorial sheet', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('dark');
+    expect(loadPageTheme()).toBe('light');
+    expect(resolveEffectiveScheme('light', true)).toBe('light');
+    expect(resolveEffectiveScheme('dark', false)).toBe('dark');
+    expect(resolveEffectiveScheme('system', true)).toBe('dark');
+    expect(resolveEffectiveScheme('system', false)).toBe('light');
+
+    const [starter] = createStarterTabs();
+    expect(starter.title).toBe('Studio Trip');
+    const evalRows = evaluateSheet(starter.rows, DEFAULT_SETTINGS, fixedRates);
+    expect(evalRows[1].formatted).toBe('255');
+    expect(evalRows[2].formatted).toBe('216.75');
+    expect(evalRows[5].formatted).toBe('€765');
+    expect(evalRows[6].formatted).toBe('€378');
+    expect(evalRows[7].formatted).toBe('€1 143');
+    expect(evalRows[9].formatted).toBe('0.5');
   });
 });

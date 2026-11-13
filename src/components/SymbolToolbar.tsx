@@ -1,9 +1,19 @@
-import React, { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, {
+  forwardRef,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { MATH_SYMBOLS, MAX_INLINE_SYMBOLS, MathSymbolItem } from '../data/mathSymbols';
 import { useToolbarFocusFallback } from '../hooks/useToolbarFocusFallback';
 
 export interface SymbolToolbarHandle {
-  openPicker: () => void;
+  openPicker: (options?: { focusSearch?: boolean }) => void;
+  closePicker: () => void;
+  setSearchQuery: (nextQuery: string) => void;
 }
 
 interface SymbolToolbarProps {
@@ -13,7 +23,8 @@ interface SymbolToolbarProps {
 
 export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>(
   ({ onInsertSymbol, onRestoreSheetFocus }, ref) => {
-    const popoverId = `more-symbols-${useId().replace(/:/g, '')}`;
+    const uid = useId().replace(/:/g, '');
+    const popoverId = `more-symbols-${uid}`;
     const toolbarRef = useRef<HTMLDivElement>(null);
     const moreBtnRef = useRef<HTMLButtonElement>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -21,6 +32,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
     const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
     const pickedSymbolRef = useRef(false);
     const openedProgrammaticallyRef = useRef(false);
+    const suppressAutoFocusRef = useRef(false);
 
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
@@ -42,14 +54,16 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
     useImperativeHandle(
       ref,
       () => ({
-        openPicker: () => {
+        openPicker: (options) => {
           const pop = popoverRef.current;
           if (!pop) return;
-          openedProgrammaticallyRef.current = true;
+          const shouldFocus = options?.focusSearch !== false;
+          openedProgrammaticallyRef.current = shouldFocus;
+          suppressAutoFocusRef.current = !shouldFocus;
           try {
             if (!pop.matches(':popover-open')) {
               const showWithSource = pop as HTMLElement & {
-                showPopover: (options?: { source?: HTMLElement }) => void;
+                showPopover: (opts?: { source?: HTMLElement }) => void;
               };
               if (moreBtnRef.current) {
                 try {
@@ -60,14 +74,30 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
               } else {
                 pop.showPopover();
               }
-            } else {
+            } else if (shouldFocus) {
               requestAnimationFrame(() => {
-                searchInputRef.current?.focus();
+                searchInputRef.current?.focus({ preventScroll: true });
               });
             }
           } catch {
             // Ignore if already open
           }
+        },
+        closePicker: () => {
+          const pop = popoverRef.current;
+          if (!pop) return;
+          openedProgrammaticallyRef.current = false;
+          suppressAutoFocusRef.current = false;
+          try {
+            if (pop.matches(':popover-open')) {
+              pop.hidePopover();
+            }
+          } catch {
+            // Ignore if already closed
+          }
+        },
+        setSearchQuery: (nextQuery: string) => {
+          setQuery(nextQuery);
         },
       }),
       []
@@ -75,11 +105,22 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
 
     useToolbarFocusFallback(toolbarRef, 'button.sym-btn');
 
-    // Sync `aria-expanded`, position fallback when CSS `position-area` is unsupported, and focus search input
+    // Sync `aria-expanded`, anchor fallback, position fallback, and search focus
     useEffect(() => {
       const pop = popoverRef.current;
       const moreBtn = moreBtnRef.current;
       if (!pop || !moreBtn) return;
+
+      if (
+        typeof ToggleEvent !== 'undefined' &&
+        !('source' in ToggleEvent.prototype) &&
+        typeof CSS !== 'undefined' &&
+        CSS.supports('anchor-name', '--a')
+      ) {
+        const anchorName = `--sym-anchor-${uid}`;
+        moreBtn.style.setProperty('anchor-name', anchorName);
+        pop.style.setProperty('position-anchor', anchorName);
+      }
 
       const handleToggle = (ev: Event) => {
         const toggleEv = ev as ToggleEvent;
@@ -93,13 +134,22 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
             const t = moreBtn.getBoundingClientRect();
             const m = pop.getBoundingClientRect();
             const fitsAbove = t.top - m.height - 6 >= 8;
-            pop.style.top = `${fitsAbove ? t.top - m.height - 6 : Math.min(window.innerHeight - m.height - 8, t.bottom + 6)}px`;
+            pop.style.top = `${
+              fitsAbove
+                ? t.top - m.height - 6
+                : Math.min(window.innerHeight - m.height - 8, t.bottom + 6)
+            }px`;
             pop.style.left = `${Math.max(10, Math.min(t.left, window.innerWidth - m.width - 10))}px`;
           }
-          requestAnimationFrame(() => {
-            searchInputRef.current?.focus();
-          });
+          const skipFocus = suppressAutoFocusRef.current;
+          suppressAutoFocusRef.current = false;
+          if (!skipFocus) {
+            requestAnimationFrame(() => {
+              searchInputRef.current?.focus({ preventScroll: true });
+            });
+          }
         } else {
+          suppressAutoFocusRef.current = false;
           const shouldRestore = !pickedSymbolRef.current && openedProgrammaticallyRef.current;
           openedProgrammaticallyRef.current = false;
           if (shouldRestore) {
@@ -112,7 +162,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
 
       pop.addEventListener('toggle', handleToggle);
       return () => pop.removeEventListener('toggle', handleToggle);
-    }, [onRestoreSheetFocus]);
+    }, [onRestoreSheetFocus, uid]);
 
     const handlePickSymbol = (item: MathSymbolItem) => {
       pickedSymbolRef.current = true;
@@ -144,7 +194,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                 title="Search symbols & operators (/char)"
                 aria-label="/char — Search math symbols"
                 aria-expanded={isOpen}
-                {...({ popovertarget: popoverId } as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+                popoverTarget={popoverId}
               >
                 /char
               </button>
@@ -216,7 +266,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                     handlePickSymbol(filteredSymbols[0]);
                   } else if (e.key === 'ArrowDown' && filteredSymbols.length > 0) {
                     e.preventDefault();
-                    itemRefs.current[0]?.focus();
+                    itemRefs.current[0]?.focus({ preventScroll: true });
                   }
                 }}
               />
@@ -227,7 +277,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                   aria-label="Clear symbol search"
                   onClick={() => {
                     setQuery('');
-                    searchInputRef.current?.focus();
+                    searchInputRef.current?.focus({ preventScroll: true });
                   }}
                 >
                   <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -258,12 +308,13 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
-                        const next = itemRefs.current[Math.min(index + 1, filteredSymbols.length - 1)];
-                        next?.focus();
+                        const next =
+                          itemRefs.current[Math.min(index + 1, filteredSymbols.length - 1)];
+                        next?.focus({ preventScroll: true });
                       } else if (e.key === 'ArrowUp') {
                         e.preventDefault();
-                        if (index === 0) searchInputRef.current?.focus();
-                        else itemRefs.current[index - 1]?.focus();
+                        if (index === 0) searchInputRef.current?.focus({ preventScroll: true });
+                        else itemRefs.current[index - 1]?.focus({ preventScroll: true });
                       }
                     }}
                   >

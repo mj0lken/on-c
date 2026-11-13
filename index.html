@@ -3,21 +3,39 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="on/c — A natural-language notepad calculator inspired by Numi. Mix text, math, ans variables, live currencies, units, and safe 30-day archived sheets in your browser or on macOS."
+    />
+    <meta property="og:title" content="on/c — Notepad calculator that blends math with text" />
+    <meta
+      property="og:description"
+      content="Type naturally—chain ans variables, convert currencies, insert /char symbols, and export Markdown. Private in localStorage on the web, native on macOS."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mj0lken.github.io/on-c/" />
     <meta name="color-scheme" content="light dark" />
     <script>
       try {
-        var savedScheme = localStorage.getItem('onc-color-scheme');
+        var isTauri = '__TAURI_INTERNALS__' in window;
+        var saved = localStorage.getItem(
+          isTauri ? 'onc-calc-color-scheme' : 'onc-page-color-scheme'
+        );
         var resolved =
-          savedScheme === 'system'
+          saved === 'system'
             ? 'light dark'
-            : savedScheme === 'dark'
+            : saved === 'dark'
               ? 'dark'
-              : 'light';
+              : saved === 'light'
+                ? 'light'
+                : isTauri
+                  ? 'dark'
+                  : 'light';
         document.querySelector('meta[name="color-scheme"]').content = resolved;
       } catch (e) {}
     </script>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>on/c</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>on/c — Natural-language notepad calculator</title>
   </head>
   <body>
     <div id="root"></div>

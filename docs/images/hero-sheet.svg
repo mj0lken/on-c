@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="560" viewBox="0 0 560 560" fill="none" role="img" aria-label="on/c dark mode notepad calculator showing math, ans chaining, currency conversions, and trigonometry">
+  <defs>
+    <filter id="cardShadow" x="12" y="10" width="536" height="544" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000000" flood-opacity="0.28" />
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Card Surface -->
+  <g filter="url(#cardShadow)">
+    <rect x="40" y="22" width="480" height="500" rx="12" fill="#1F2023" stroke="#FFFFFF" stroke-opacity="0.09" />
+  </g>
+
+  <!-- Traffic Lights -->
+  <circle cx="62" cy="41" r="5.5" fill="#FF5F57" />
+  <circle cx="80" cy="41" r="5.5" fill="#FEBC2E" />
+  <circle cx="98" cy="41" r="5.5" fill="#28C840" />
+
+  <!-- Wordmark & Top Controls -->
+  <text x="280" y="45" text-anchor="middle" fill="#E8E9EC" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="13" font-weight="600">on/c</text>
+  <text x="441" y="45" fill="#686B73" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="400">+</text>
+  <text x="459" y="44" fill="#686B73" font-family="'SF Mono', ui-monospace, Menlo, monospace" font-size="11.5" font-weight="500">/help</text>
+  <g transform="translate(500, 36)" stroke="#686B73" stroke-width="1.35" fill="none">
+    <circle cx="5" cy="5" r="2.1" />
+    <path d="M5 0.8v1.3M5 7.9v1.3M0.8 5h1.3M7.9 5h1.3M2 2l0.9 0.9M7.1 7.1l0.9 0.9M8 2L7.1 2.9M2.9 7.1L2 8" stroke-linecap="round" />
+  </g>
+
+  <!-- Active Tab Pill -->
+  <rect x="62" y="57" width="76" height="21" rx="5" fill="#E8E9EC" />
+  <text x="100" y="71" text-anchor="middle" fill="#1F2023" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5" font-weight="600">Studio Trip</text>
+  <text x="147" y="71" fill="#686B73" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="12">×</text>
+
+  <!-- Monospace Sheet Rows -->
+  <g font-family="'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace" font-size="13.5">
+    <!-- Row 1 -->
+    <text x="62" y="106" fill="#ECECEE" font-weight="600"># Studio Trip</text>
+
+    <!-- Row 2 -->
+    <text x="62" y="135" fill="#ECECEE">120 <tspan fill="#A6AAB4">+</tspan> 45 <tspan fill="#A6AAB4">*</tspan> 3</text>
+    <rect x="434" y="122" width="30" height="16" rx="3.5" fill="#292A2E" />
+    <text x="449" y="133.5" text-anchor="middle" fill="#686B73" font-size="9.5" font-weight="500">ans1</text>
+    <text x="498" y="135" text-anchor="end" fill="#8AD444">255</text>
+
+    <!-- Row 3 -->
+    <text x="62" y="164"><tspan fill="#8AD444">ans</tspan> <tspan fill="#A6AAB4">−</tspan> <tspan fill="#ECECEE">15</tspan><tspan fill="#A6AAB4">%</tspan> <tspan fill="#636770">// discount</tspan></text>
+    <text x="498" y="164" text-anchor="end" fill="#8AD444">216.75</text>
+
+    <!-- Divider -->
+    <line x1="62" y1="186" x2="498" y2="186" stroke="#FFFFFF" stroke-opacity="0.075" />
+
+    <!-- Row 5 -->
+    <text x="62" y="213" fill="#ECECEE" font-weight="600"># Expenses in EUR</text>
+
+    <!-- Row 6 -->
+    <text x="62" y="242"><tspan fill="#8C9099">Flight: </tspan><tspan fill="#B8BCC6">$</tspan><tspan fill="#ECECEE">850</tspan> <tspan fill="#9EC5FE">in</tspan> <tspan fill="#B8BCC6">EUR</tspan></text>
+    <text x="498" y="242" text-anchor="end" fill="#8AD444">€767.97</text>
+
+    <!-- Row 7 -->
+    <text x="62" y="271"><tspan fill="#8C9099">Hotel: </tspan><tspan fill="#ECECEE">4 200</tspan> <tspan fill="#B8BCC6">SEK</tspan> <tspan fill="#9EC5FE">in</tspan> <tspan fill="#B8BCC6">EUR</tspan></text>
+    <text x="498" y="271" text-anchor="end" fill="#8AD444">€378.78</text>
+
+    <!-- Row 8 -->
+    <text x="62" y="300" fill="#D0D3DC">sum</text>
+    <text x="498" y="300" text-anchor="end" fill="#8AD444">€1 146.75</text>
+
+    <!-- Divider -->
+    <line x1="62" y1="322" x2="498" y2="322" stroke="#FFFFFF" stroke-opacity="0.075" />
+
+    <!-- Row 10 -->
+    <text x="62" y="350"><tspan fill="#8C9099">Ramp angle: </tspan><tspan fill="#D0D3DC">sin</tspan> <tspan fill="#ECECEE">30</tspan><tspan fill="#B8BCC6">°</tspan></text>
+    <rect x="444" y="337" width="25" height="16" rx="3.5" fill="#8AD444" fill-opacity="0.13" />
+    <text x="456.5" y="348.5" text-anchor="middle" fill="#8AD444" font-size="9.5" font-weight="500">ans</text>
+    <text x="498" y="350" text-anchor="end" fill="#8AD444">0.5</text>
+  </g>
+
+  <!-- Bottom Footer -->
+  <g font-family="'SF Mono', ui-monospace, Menlo, monospace" font-size="11.5" fill="#686B73">
+    <text x="62" y="505">/char</text>
+    <line x1="104" y1="495" x2="104" y2="508" stroke="#FFFFFF" stroke-opacity="0.08" />
+    <text x="116" y="505">°</text>
+    <text x="136" y="505">√</text>
+    <text x="156" y="505">π</text>
+    <text x="176" y="505">^</text>
+    <text x="196" y="505">²</text>
+  </g>
+  <text x="476" y="505" text-anchor="end" fill="#686B73" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" font-size="11.5">Total: €2 765.75</text>
+  <g transform="translate(486, 495)" stroke="#686B73" stroke-width="1.35" fill="none">
+    <path d="M6 1.5v6M3.8 3.8L6 1.5l2.2 2.3" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M2 8v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8" stroke-linecap="round" />
+  </g>
+</svg>
