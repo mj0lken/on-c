@@ -16,11 +16,14 @@ on `main` get fixes.
 
 ## What's in scope
 
-`on/c` evaluates expressions with a custom hand-written recursive-descent parser (never `eval()` or
-`new Function()`), stores sheets and settings locally (`localStorage`), and on macOS exposes a
-single Tauri IPC command (`export_sheet_file`) restricted to writing user-initiated exports inside
-`~/Downloads` with path-component sanitization.
+`on/c` evaluates expressions with a hand-written recursive-descent parser (never `eval()` or
+`new Function()`), stores sheets and preferences locally in `localStorage`, and on macOS enforces a
+strict WebView Content Security Policy (`object-src 'none'`, `base-uri 'none'`,
+`frame-ancestors 'none'`, and outbound `connect-src` restricted solely to `https://open.er-api.com`
+for anonymous public FX rates) alongside a single Tauri IPC command (`save_export_file`) scoped to
+writing `.md`, `.csv`, or `.txt` files inside `~/Downloads` with path-traversal and dotfile
+sanitization.
 
 Anything that achieves arbitrary code execution through sheet input or pasted content, escapes the
-`~/Downloads` export path boundary in the Tauri app, or transmits sheet contents off the user's
-device without explicit user action is a vulnerability.
+`~/Downloads` export path or extension allowlist in the Tauri app, or transmits sheet contents off
+the user's device without explicit user action is a vulnerability.

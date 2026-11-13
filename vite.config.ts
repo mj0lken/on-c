@@ -47,7 +47,7 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     fs: {
-      // Required because the macOS workspace folder name `on:c` ("on/c" in Finder) contains `:`
+      // Allow serving workspaces whose directory names contain characters like ':' on macOS
       strict: false,
     },
     host: host || false,

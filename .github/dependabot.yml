@@ -1,7 +1,19 @@
 version: 2
 updates:
-  # Keeps the SHA-pinned actions in .github/workflows current.
+  # Keeps SHA-pinned GitHub Actions in .github/workflows current.
   - package-ecosystem: github-actions
     directory: /
+    schedule:
+      interval: weekly
+
+  # Keeps web dependencies current.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Keeps Tauri / Rust dependencies current.
+  - package-ecosystem: cargo
+    directory: /src-tauri
     schedule:
       interval: weekly

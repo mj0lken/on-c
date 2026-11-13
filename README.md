@@ -60,7 +60,7 @@ to use the full web version in your browser.
 - **No destructive "Clear sheet" button.** Closing a tab (`⌘W` or `×`) moves non-empty sheets into
   **Settings › Archived Sheets** for **7**, **30** (default), or **90 days**, where you can restore
   or permanently delete them anytime.
-- **Offline-capable exchange rates.** Live FX fetches public ECB reference rates anonymously and
+- **Offline-capable exchange rates.** Live FX fetches public daily reference rates anonymously and
   falls back automatically to cached / bundled rates when offline.
 - **Clean `.md` & `.csv` export.** Export any sheet as Markdown, CSV, or aligned plain text from
   the bottom-right export menu.

@@ -72,7 +72,7 @@ export const HelpDialog = forwardRef<HelpDialogHandle, HelpDialogProps>(
       }
     }, [isOpen, nonModalDemo]);
 
-    // Modern-web-guidance `light-dismiss-a-dialog` & `dialog` fallback + close listener
+    // Light-dismiss backdrop fallback & native `<dialog>` close listener
     useEffect(() => {
       const dialog = dialogRef.current;
       if (!dialog) return;
@@ -122,7 +122,7 @@ export const HelpDialog = forwardRef<HelpDialogHandle, HelpDialogProps>(
 
     useToolbarFocusFallback(topicsBarRef, 'button.topic-chip');
 
-    // Per modern-web-guidance `scrollability-affordance-hints`: IntersectionObserver fallback when scroll-driven animations are unsupported
+    // IntersectionObserver fallback when CSS scroll-driven animations are unsupported
     useEffect(() => {
       const scroller = topicsBarRef.current;
       if (!scroller || !isOpen) return;

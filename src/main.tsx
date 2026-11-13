@@ -4,7 +4,7 @@ import { RootShell } from './RootShell';
 import './styles/app.css';
 import './styles/landing.css';
 
-// Per modern-web-guidance `interest-triggered-tooltips`: wire ARIA + `popover="hint"` fallback before loading polyfills
+// Wire ARIA relationships and `popover="hint"` fallback before loading polyfills
 const ownedHintTriggers = new WeakSet<Element>();
 
 function wireInterestHints() {
@@ -88,7 +88,7 @@ if (typeof document !== 'undefined') {
   }
 }
 
-// Per modern-web-guidance `viewport-aware-dropdowns` / `toolbar`: conditionally load popover polyfill only when missing
+// Conditionally load Popover API polyfill when native support is missing
 if (typeof HTMLElement !== 'undefined' && !Object.hasOwn(HTMLElement.prototype, 'popover')) {
   void import('@oddbird/popover-polyfill');
 }
@@ -101,7 +101,7 @@ if (
   void import('interestfor');
 }
 
-// Per modern-web-guidance `tabs`: conditionally load focusgroup polyfill only when missing
+// Conditionally load `focusgroup` polyfill when native support is missing
 if (typeof HTMLElement !== 'undefined' && !Object.hasOwn(HTMLElement.prototype, 'focusGroup')) {
   void import('@microsoft/focusgroup-polyfill').then((mod) => {
     if (typeof mod.polyfill === 'function') {
@@ -110,7 +110,7 @@ if (typeof HTMLElement !== 'undefined' && !Object.hasOwn(HTMLElement.prototype, 
   });
 }
 
-// Per modern-web-guidance `calculate-event-differentials`: conditionally load `temporal-polyfill` before mounting when native `Temporal` is absent
+// Conditionally load `Temporal` polyfill before mounting when native `Temporal` is absent
 void (async () => {
   if (typeof (globalThis as Record<string, unknown>).Temporal === 'undefined') {
     const mod = await import('temporal-polyfill');

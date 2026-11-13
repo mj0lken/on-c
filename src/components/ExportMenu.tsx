@@ -62,7 +62,7 @@ export const ExportMenu: React.FC<ExportMenuProps> = ({
     }
   }, []);
 
-  // Per modern-web-guidance `menu`: install role="menu" / role="menuitem" + Arrow/Home/End fallback ONLY when native focusGroup is missing
+  // Install role="menu" / role="menuitem" + Arrow/Home/End fallback when native focusGroup is unavailable
   useEffect(() => {
     const group = groupRef.current;
     if (!group || 'focusGroup' in HTMLElement.prototype) return;

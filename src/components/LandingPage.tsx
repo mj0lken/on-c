@@ -21,12 +21,14 @@ import { TutorialCursor } from './TutorialCursor';
 const BREW_COMMAND = 'brew install --cask mj0lken/tap/on-c';
 const RELEASES_URL = 'https://github.com/mj0lken/on-c/releases/latest';
 const REPO_URL = 'https://github.com/mj0lken/on-c';
+const NUMI_URL = 'https://numi.app';
 
 let cachedSupportsDisplayTransition: boolean | undefined;
 
 /**
- * Runtime probe per `animate-element-entry-exit` (guards against Firefox bug 1882408 where
- * `CSS.supports('transition-behavior', 'allow-discrete')` is true without transitioning `display`).
+ * Probes whether the current browser actually animates discrete `display` transitions
+ * (guards against Firefox bug 1882408 where `CSS.supports('transition-behavior', 'allow-discrete')`
+ * returns `true` without transitioning `display`).
  */
 function canTransitionDisplay(): boolean {
   if (cachedSupportsDisplayTransition !== undefined) {
@@ -440,7 +442,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Minimal Footer with Expandable Privacy Panel (`animate-element-entry-exit`) */}
+      {/* Minimal Footer with Expandable Privacy Panel */}
       <div className="fade-collapse-shell site-footer-shell" inert={isAppMode}>
         <div className="fade-collapse-inner">
           <footer className="site-footer-wrap">
@@ -484,7 +486,7 @@ export const LandingPage: React.FC = () => {
                   <li className="privacy-point">
                     <span className="privacy-check" aria-hidden="true">✓</span>
                     <span>
-                      <strong>Offline-capable FX</strong> — fetches public ECB reference rates
+                      <strong>Offline-capable FX</strong> — fetches public daily reference rates
                       anonymously and falls back seamlessly to cached rates offline.
                     </span>
                   </li>
@@ -494,7 +496,16 @@ export const LandingPage: React.FC = () => {
 
             <div className="site-footer">
               <span>
-                <strong>on/c</strong> · Free &amp; open source under the MIT License
+                <strong>on/c</strong> · Inspired by{' '}
+                <a
+                  href={NUMI_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="site-footer-inline-link"
+                >
+                  Numi
+                </a>{' '}
+                · Free &amp; open source under the MIT License
               </span>
 
               <div className="site-footer-links">

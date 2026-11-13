@@ -1,8 +1,11 @@
 [package]
 name = "onc_calculator"
 version = "1.0.0"
-description = "on/c — Natural language notepad calculator"
-authors = ["Malcolm"]
+description = "on/c — Natural-language notepad calculator inspired by Numi"
+authors = ["mj0lken"]
+license = "MIT"
+homepage = "https://mj0lken.github.io/on-c/"
+repository = "https://github.com/mj0lken/on-c"
 edition = "2021"
 
 [lib]

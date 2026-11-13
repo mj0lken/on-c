@@ -22,9 +22,6 @@ export const PAGE_COLOR_SCHEME_KEY = 'onc-page-color-scheme';
 export const VISITOR_EDITED_KEY = 'onc-visitor-edited-v1';
 export const TOUR_COMPLETED_KEY = 'onc-tour-completed-v1';
 
-// Legacy alias kept for compatibility
-export const COLOR_SCHEME_KEY = CALC_COLOR_SCHEME_KEY;
-
 export const DEFAULT_SETTINGS: CalculatorSettings = {
   theme: 'dark',
   precision: 2,

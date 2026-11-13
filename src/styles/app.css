@@ -252,7 +252,7 @@ html:has(.app-stage.is-tauri) #root {
 }
 
 /*
- * Component-specific light/dark theme override (`component-specific-light-dark-theme`):
+ * Scoped calculator color-scheme override:
  * Applied strictly to opaque calculator surfaces (`.calc-face`, `.help-dialog`, and popovers),
  * never to backgroundless wrappers, and re-specifying inherited `<color>` properties (`color`,
  * `accent-color`, `caret-color`, `scrollbar-color`) because `light-dark()` resolves at computed-value time.
@@ -1033,7 +1033,7 @@ html:has(.app-stage.is-tauri) #root {
   font-weight: 500;
 }
 
-/* Bottom-Left Quick Math Symbols Toolbar (`toolbar` + `viewport-aware-dropdowns`) */
+/* Bottom-Left Quick Math Symbols Toolbar */
 .symbol-toolbar {
   display: inline-flex;
   align-items: center;
@@ -1128,7 +1128,7 @@ html:has(.app-stage.is-tauri) #root {
   }
 }
 
-/* Searchable Symbol Picker Popover (`viewport-aware-dropdowns`) */
+/* Searchable Symbol Picker Popover */
 [popover].symbol-more-popover {
   width: min(88vw, 268px);
   max-height: 290px;
@@ -1301,7 +1301,7 @@ html:has(.app-stage.is-tauri) #root {
   flex-shrink: 0;
 }
 
-/* Bottom-Right Export Popup Menu (`menu` + `viewport-aware-dropdowns`) */
+/* Bottom-Right Export Popup Menu */
 [popover].export-menu-popover {
   width: min(86vw, 206px);
   padding: 4px;
@@ -1802,7 +1802,7 @@ dialog::backdrop {
   display: flex;
 }
 
-/* Row 2: Sleek Compact Topic Chips Row Directly Beneath Search (`toolbar` + `scrollability-affordance-hints`) */
+/* Row 2: Sleek Compact Topic Chips Row Directly Beneath Search */
 .help-topics-bar {
   display: flex;
   align-items: center;
@@ -1985,7 +1985,7 @@ dialog::backdrop {
   color: var(--accent);
 }
 
-/* `(i)` Info Trigger & Top-Layer Hint Popover (`interest-triggered-tooltips`) */
+/* `(i)` Info Trigger & Top-Layer Hint Popover */
 [interestfor] {
   --interest-delay-start: 0.08s;
   interest-delay-start: var(--interest-delay-start);

@@ -1,4 +1,4 @@
-/* Numi-Inspired Minimalist Landing Page (`dark-mode`, `dark-mode-toggle`, `motion`, `animate-element-entry-exit`) */
+/* Numi-Inspired Minimalist Landing Page */
 
 :root {
   --site-bg-light: #ffffff;
@@ -202,12 +202,13 @@
 .tour-ctrl-btn:focus-visible,
 .tour-step-btn:focus-visible,
 .site-footer-btn:focus-visible,
-.site-footer-link:focus-visible {
+.site-footer-link:focus-visible,
+.site-footer-inline-link:focus-visible {
   outline: 2px solid var(--site-brand-red);
   outline-offset: 2px;
 }
 
-/* Top-Right Moon/Sun Icon-Only Theme Toggle (`dark-mode-toggle`) */
+/* Top-Right Moon/Sun Icon-Only Theme Toggle */
 .page-theme-toggle {
   margin-left: 2px;
   width: 32px;
@@ -236,7 +237,7 @@
   justify-content: center;
 }
 
-/* Branch icon visibility directly off `<meta name="color-scheme">` + OS fallback (`dark-mode-toggle`) */
+/* Branch icon visibility directly off `<meta name="color-scheme">` + OS fallback */
 .theme-opt-when-dark {
   display: none;
 }
@@ -513,7 +514,7 @@
   color: var(--site-ink-muted);
 }
 
-/* Footer & Expandable Local-First Privacy Drawer (`animate-element-entry-exit`) */
+/* Footer & Expandable Local-First Privacy Drawer */
 .site-footer-wrap {
   width: 100%;
   max-width: 960px;
@@ -531,7 +532,7 @@
     opacity ease-out,
     translate ease-out;
   transition-duration: 0.28s;
-  /* Separate declaration after `transition` so older browsers never drop the shorthand (`animate-element-entry-exit`) */
+  /* Separate declaration after `transition` so older browsers never drop the shorthand */
   transition-behavior: allow-discrete;
 }
 
@@ -689,10 +690,21 @@
   transition: color 0.14s ease;
 }
 
+.site-footer-inline-link {
+  color: var(--site-ink-secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--site-border);
+  text-underline-offset: 2.5px;
+  border-radius: 3px;
+  transition: color 0.14s ease, text-decoration-color 0.14s ease;
+}
+
 @media (hover: hover) {
   .site-footer-btn:hover,
-  .site-footer-link:hover {
+  .site-footer-link:hover,
+  .site-footer-inline-link:hover {
     color: var(--site-ink);
+    text-decoration-color: currentColor;
   }
 }
 

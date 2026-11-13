@@ -62,7 +62,6 @@ export interface AppHandle {
   prepareTourSheet: (initialRows: SheetRow[], useDedicatedTab: boolean) => void;
   setTourRows: (rows: SheetRow[], typingRowId?: string | null) => void;
   setTourTypingRowId: (rowId: string | null) => void;
-  insertExpressionFromSite: (example: string) => void;
   openCharPickerForTour: () => void;
   setCharSearchForTour: (query: string) => void;
   closeCharPickerForTour: () => void;
@@ -526,14 +525,6 @@ export const App = forwardRef<AppHandle, AppProps>(
         setTourTypingRowId: (rowId: string | null) => {
           setTourTypingRowId(rowId);
         },
-        insertExpressionFromSite: (example: string) => {
-          markVisitorEdited();
-          setTourTypingRowId(null);
-          handleInsertExample(example);
-          requestAnimationFrame(() => {
-            sheetRef.current?.focusCurrentCursor();
-          });
-        },
         openCharPickerForTour: () => {
           symbolToolbarRef.current?.openPicker({ focusSearch: false });
         },
@@ -576,7 +567,6 @@ export const App = forwardRef<AppHandle, AppProps>(
         activeTab.id,
         activeTab.rows.length,
         settings.theme,
-        handleInsertExample,
       ]
     );
 
