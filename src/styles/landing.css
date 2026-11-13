@@ -27,7 +27,8 @@
   --site-cta-fg-light: #ffffff;
   --site-cta-fg-dark: #141518;
 
-  --site-brand-red: #d92b2b;
+  --site-brand-red-light: #d92b2b;
+  --site-brand-red-dark: #f04444;
   --site-demo-green: #8ad444;
 
   --site-bg: var(--site-bg-light);
@@ -39,6 +40,7 @@
   --site-ink-muted: var(--site-ink-muted-light);
   --site-cta-bg: var(--site-cta-bg-light);
   --site-cta-fg: var(--site-cta-fg-light);
+  --site-brand-red: var(--site-brand-red-light);
 
   @media (prefers-color-scheme: dark) {
     &:not(:has(> head > meta[name='color-scheme'][content='light'])) {
@@ -51,6 +53,7 @@
       --site-ink-muted: var(--site-ink-muted-dark);
       --site-cta-bg: var(--site-cta-bg-dark);
       --site-cta-fg: var(--site-cta-fg-dark);
+      --site-brand-red: var(--site-brand-red-dark);
     }
   }
 
@@ -64,6 +67,7 @@
     --site-ink-muted: var(--site-ink-muted-dark);
     --site-cta-bg: var(--site-cta-bg-dark);
     --site-cta-fg: var(--site-cta-fg-dark);
+    --site-brand-red: var(--site-brand-red-dark);
   }
 
   @supports (color: light-dark(white, black)) {
@@ -79,6 +83,7 @@
     --site-ink-muted: light-dark(var(--site-ink-muted-light), var(--site-ink-muted-dark));
     --site-cta-bg: light-dark(var(--site-cta-bg-light), var(--site-cta-bg-dark));
     --site-cta-fg: light-dark(var(--site-cta-fg-light), var(--site-cta-fg-dark));
+    --site-brand-red: light-dark(var(--site-brand-red-light), var(--site-brand-red-dark));
   }
 }
 
@@ -153,34 +158,18 @@
 
 .site-brand {
   display: inline-flex;
-  align-items: center;
-  gap: 9px;
+  align-items: baseline;
   text-decoration: none;
-  color: var(--site-ink);
-  font-weight: 650;
-  font-size: 15px;
-  letter-spacing: -0.02em;
-}
-
-.site-brand-badge {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  background: #1f2023;
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  color: var(--site-brand-red);
   font-weight: 700;
-  letter-spacing: -0.04em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14);
+  font-size: 16px;
+  letter-spacing: -0.025em;
+  line-height: 1;
 }
 
 .site-brand-slash {
-  color: var(--site-brand-red);
+  color: var(--site-ink);
+  transition: color 0.24s ease;
 }
 
 .site-nav {

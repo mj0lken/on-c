@@ -247,12 +247,7 @@ export const LandingPage: React.FC = () => {
         <div className="fade-collapse-inner">
           <header className="site-header">
             <a href="#top" className="site-brand" aria-label="on/c home">
-              <span className="site-brand-badge" aria-hidden="true">
-                on<span className="site-brand-slash">/</span>c
-              </span>
-              <span>
-                on<span className="site-brand-slash">/</span>c
-              </span>
+              on<span className="site-brand-slash">/</span>c
             </a>
 
             <nav className="site-nav" aria-label="Primary">
