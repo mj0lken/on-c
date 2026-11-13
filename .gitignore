@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-macos/
+coverage/
+src-tauri/target/
+src-tauri/gen/
+*.tsbuildinfo
+.env
+.env.*
+.DS_Store

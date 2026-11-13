@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect x="8" y="8" width="112" height="112" rx="26" fill="#D92B2B"/>
+  <text
+    x="64"
+    y="76"
+    text-anchor="middle"
+    fill="#FFFFFF"
+    font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', Helvetica, sans-serif"
+    font-weight="600"
+    font-size="40"
+    letter-spacing="-1"
+  >on/c</text>
+</svg>
