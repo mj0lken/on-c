@@ -87,6 +87,7 @@ native Tauri `.app`.
 npm ci                            # install dependencies
 npm run dev                       # start local web dev server on http://localhost:1420
 npm test                          # run Vitest evaluation, archive, naming & export tests
+npm run audit:rust                # audit Rust lockfile against RustSec (cargo-audit)
 npm run build                     # type-check & build static web bundle into dist/
 ./scripts/build-app.sh            # build & ad-hoc sign build/on-c.app (Apple Silicon)
 ./scripts/build-app.sh --install  # copy build/on-c.app to /Applications and launch it
@@ -95,9 +96,9 @@ npm run build                     # type-check & build static web bundle into di
 Cutting a release (maintainers):
 
 ```bash
-git tag v1.0.4 && git push origin v1.0.4  # trigger automated CI release, updater manifest & tap bump
-./scripts/release.sh 1.0.4 --dry-run      # or test, build, zip & verify cask locally
-./scripts/release.sh 1.0.4                # or publish locally & update homebrew-tap in one step
+git tag v1.0.5 && git push origin v1.0.5  # trigger automated CI release, updater manifest & tap bump
+./scripts/release.sh 1.0.5 --dry-run      # or test, build, zip & verify cask locally
+./scripts/release.sh 1.0.5                # or publish locally & update homebrew-tap in one step
 ```
 
 ## Project layout
@@ -133,7 +134,7 @@ scripts/
   build-app.sh                Packages & ad-hoc signs build/on-c.app
   release.sh                  One-command local GitHub release & Homebrew cask updater
 .github/workflows/
-  ci.yml                      macOS build, test & .app bundle verification on PRs and main
+  ci.yml                      macOS build, test, cargo audit & .app bundle verification on PRs and main
   pages.yml                   Automated GitHub Pages deployment to mj0lken.github.io/on-c/
   release.yml                 Tag-driven signed macOS release, updater manifest & Homebrew tap CI
 ```
