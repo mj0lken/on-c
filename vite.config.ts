@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig, Plugin } from 'vite';
@@ -10,6 +11,29 @@ const normalizedBase = rawBase
     ? rawBase
     : `${rawBase}/`
   : './';
+
+function resolveAppVersion(): string {
+  const envVersion = process.env.VERSION?.trim().replace(/^v/i, '');
+  if (envVersion) return envVersion;
+  try {
+    const tag = execFileSync('git', ['describe', '--tags', '--abbrev=0', '--match', 'v*'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (tag) return tag.replace(/^v/i, '');
+  } catch {
+    // Fall through to package.json version when no git tags exist
+  }
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf8')) as {
+      version?: string;
+    };
+    if (pkg.version) return pkg.version;
+  } catch {
+    // Ignore
+  }
+  return '1.0.0';
+}
 
 /**
  * Emits `dist/app/index.html` and `dist/404.html` for static web hosts (GitHub Pages)
@@ -38,6 +62,9 @@ function spaAppRoutePlugin(): Plugin {
 
 export default defineConfig({
   base: normalizedBase,
+  define: {
+    __APP_VERSION__: JSON.stringify(resolveAppVersion()),
+  },
   plugins: [react(), spaAppRoutePlugin()],
   clearScreen: false,
   build: {

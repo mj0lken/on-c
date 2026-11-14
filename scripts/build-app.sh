@@ -21,7 +21,7 @@ BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 1)
 # Build frontend with relative asset base for bundled Tauri WebView, stamping VERSION into package_info()
 # at compile time so tauri-plugin-updater knows the exact running version.
 if [[ -n "$VERSION" ]]; then
-  VITE_BASE_PATH="./" node ./node_modules/@tauri-apps/cli/tauri.js build \
+  VERSION="$VERSION" VITE_BASE_PATH="./" node ./node_modules/@tauri-apps/cli/tauri.js build \
     --bundles app \
     --target "$TARGET_TRIPLE" \
     -c "{\"version\":\"$VERSION\"}"
