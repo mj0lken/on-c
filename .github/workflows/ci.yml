@@ -64,6 +64,15 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml
           cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
+      - name: Audit Rust dependencies (cargo audit)
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_ENV_HINTS: 1
+        run: |
+          command -v cargo-audit >/dev/null || brew install cargo-audit
+          cargo audit --file src-tauri/Cargo.lock
+
       - name: Package & verify signed macOS .app bundle
         run: |
           ./scripts/build-app.sh

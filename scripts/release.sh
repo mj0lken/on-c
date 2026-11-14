@@ -82,6 +82,7 @@ else
 fi
 [[ -f "$CASK" ]] || fail "no cask at $CASK; set TAP_DIR to the homebrew-tap checkout"
 [[ -f "$SIGNING_KEY" ]] || fail "no updater signing key at $SIGNING_KEY; generate one with: npm run tauri -- signer generate -w ~/.tauri/onc.key"
+command -v cargo-audit >/dev/null || require "cargo-audit isn't installed (brew install cargo-audit)"
 [[ -z "$(git -C "$TAP_DIR" status --porcelain)" ]] || require "the tap has uncommitted changes"
 $DRY_RUN || git -C "$TAP_DIR" pull -q --ff-only
 TARGET=$(git rev-parse HEAD)
@@ -90,6 +91,9 @@ BUILD_NUMBER=$(git rev-list --count HEAD)
 step "Testing"
 npm test
 npm run build
+if command -v cargo-audit >/dev/null; then
+  cargo audit --file src-tauri/Cargo.lock
+fi
 
 step "Building $VERSION ($BUILD_NUMBER) and zipping"
 VERSION="$VERSION" BUILD_NUMBER="$BUILD_NUMBER" ./scripts/build-app.sh
@@ -122,12 +126,16 @@ else
   }
   NEW=$(changes feat)
   FIXED=$(changes fix)
+  MAINT=$(git log --no-merges --format='%s' "${PREVIOUS:+$PREVIOUS..}HEAD" \
+    | sed -nE 's/^(chore|ci|security|perf)(\([^)]*\))?: (.*)$/- \3/p')
   {
     if [[ -n "$NEW" ]]; then
       printf "## What's new\n%s\n" "$NEW"
       if [[ -n "$FIXED" ]]; then printf '\n## Fixes\n%s\n' "$FIXED"; fi
     elif [[ -n "$FIXED" ]]; then
       printf "## Fixes\n%s\n" "$FIXED"
+    elif [[ -n "$MAINT" ]]; then
+      printf "## What's new\n%s\n" "$MAINT"
     else
       printf "## What's new\n- Maintenance and polish\n"
     fi

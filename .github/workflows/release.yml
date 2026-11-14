@@ -124,6 +124,15 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml
           cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 
+      - name: Audit Rust dependencies (cargo audit)
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_ENV_HINTS: 1
+        run: |
+          command -v cargo-audit >/dev/null || brew install cargo-audit
+          cargo audit --file src-tauri/Cargo.lock
+
       - name: Build macOS .app, verify bundle & create arm64 zip
         id: package
         run: |
@@ -161,6 +170,8 @@ jobs:
           }
           NEW=$(changes feat)
           FIXED=$(changes fix)
+          MAINT=$(git log --no-merges --format='%s' "${PREVIOUS:+$PREVIOUS..}HEAD" \
+            | sed -nE 's/^(chore|ci|security|perf)(\([^)]*\))?: (.*)$/- \3/p')
 
           {
             if [[ -n "$NEW" ]]; then
@@ -168,6 +179,8 @@ jobs:
               if [[ -n "$FIXED" ]]; then printf '\n## Fixes\n%s\n' "$FIXED"; fi
             elif [[ -n "$FIXED" ]]; then
               printf "## Fixes\n%s\n" "$FIXED"
+            elif [[ -n "$MAINT" ]]; then
+              printf "## What's new\n%s\n" "$MAINT"
             else
               printf "## What's new\n- Maintenance and polish\n"
             fi

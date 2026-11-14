@@ -23,6 +23,7 @@
     "build": "node ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/vite/bin/vite.js build",
     "preview": "node ./node_modules/vite/bin/vite.js preview",
     "test": "node ./node_modules/vitest/vitest.mjs run",
+    "audit:rust": "cargo audit --file src-tauri/Cargo.lock",
     "tauri": "node ./node_modules/@tauri-apps/cli/tauri.js",
     "tauri:dev": "CARGO_TARGET_DIR=/tmp/onc-tauri-target node ./node_modules/@tauri-apps/cli/tauri.js dev",
     "tauri:build": "CARGO_TARGET_DIR=/tmp/onc-tauri-target node ./node_modules/@tauri-apps/cli/tauri.js build"
