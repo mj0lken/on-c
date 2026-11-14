@@ -4,8 +4,7 @@
  */
 
 function readViteBaseUrl(): string {
-  const meta = import.meta as { env?: { BASE_URL?: string } };
-  return meta.env?.BASE_URL ?? '/';
+  return import.meta.env.BASE_URL || '/';
 }
 
 export function normalizeBasePrefix(rawBaseUrl = readViteBaseUrl()): string {

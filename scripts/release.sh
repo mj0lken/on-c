@@ -30,6 +30,7 @@ cd "$(dirname "$0")/.."
 REPO="mj0lken/on-c"
 TAP_DIR="${TAP_DIR:-$(cd .. && pwd)/homebrew-tap}"
 CASK="$TAP_DIR/Casks/on-c.rb"
+SIGNING_KEY="${TAURI_SIGNING_PRIVATE_KEY_PATH:-$HOME/.tauri/onc.key}"
 
 fail() { echo "release: $*" >&2; exit 1; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -38,6 +39,9 @@ require() { if $DRY_RUN; then echo "(dry run) warning: $1"; else fail "$1"; fi }
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "usage: scripts/release.sh X.Y.Z [--dry-run] [--notes-file FILE]"
 TAG="v$VERSION"
 ZIP="build/on-c-$VERSION-arm64.zip"
+TARBALL="build/on-c.app.tar.gz"
+TARBALL_SIG="build/on-c.app.tar.gz.sig"
+MANIFEST="build/latest.json"
 NOTES_PATH="build/release-notes-$VERSION.md"
 PREPARED_CASK="build/on-c-$VERSION.cask.rb"
 WORK=$(mktemp -d)
@@ -77,6 +81,7 @@ else
   require "gh isn't signed in (gh auth login)"
 fi
 [[ -f "$CASK" ]] || fail "no cask at $CASK; set TAP_DIR to the homebrew-tap checkout"
+[[ -f "$SIGNING_KEY" ]] || fail "no updater signing key at $SIGNING_KEY; generate one with: npm run tauri -- signer generate -w ~/.tauri/onc.key"
 [[ -z "$(git -C "$TAP_DIR" status --porcelain)" ]] || require "the tap has uncommitted changes"
 $DRY_RUN || git -C "$TAP_DIR" pull -q --ff-only
 TARGET=$(git rev-parse HEAD)
@@ -125,13 +130,52 @@ else
 
 **Requirements:** Apple Silicon Mac, macOS 13 (Ventura) or later — or use the [live web app](https://mj0lken.github.io/on-c/) in any modern browser.
 
-**Install or update:** \`brew install --cask mj0lken/tap/on-c\` (or \`brew upgrade --cask on-c\`), or unzip, drag **on-c.app** to Applications and open it. The app isn't signed with a paid Apple Developer ID yet, so the first launch of a new download is blocked: click **Done**, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
+**Install or update:** Click the pulsing **!** icon in the **on/c** title bar to update in place, run \`brew install --cask mj0lken/tap/on-c\` (or \`brew upgrade --cask on-c\`), or unzip, drag **on-c.app** to Applications and open it. The app isn't signed with a paid Apple Developer ID yet, so the first launch of a fresh download is blocked: click **Done**, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
 
 SHA-256 of \`$(basename "$ZIP")\`: \`$SHA\`
 EOF
   } > "$NOTES_PATH"
 fi
 cat "$NOTES_PATH"
+
+step "Signing in-app updater bundle and writing latest.json"
+rm -f "$TARBALL" "$TARBALL_SIG" "$MANIFEST"
+COPYFILE_DISABLE=1 tar -czf "$TARBALL" -C build on-c.app
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
+  node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
+  -f "$SIGNING_KEY" \
+  --app-version "$VERSION" \
+  "$TARBALL" >/dev/null
+[[ -s "$TARBALL_SIG" ]] || fail "failed to generate updater signature at $TARBALL_SIG"
+
+PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+UPDATER_URL="https://github.com/$REPO/releases/download/$TAG/on-c.app.tar.gz"
+MANIFEST_VERSION="$VERSION" \
+MANIFEST_PUB_DATE="$PUB_DATE" \
+MANIFEST_URL="$UPDATER_URL" \
+MANIFEST_NOTES_FILE="$NOTES_PATH" \
+MANIFEST_SIG_FILE="$TARBALL_SIG" \
+MANIFEST_OUT="$MANIFEST" \
+node -e '
+  const fs = require("node:fs");
+  const signature = fs.readFileSync(process.env.MANIFEST_SIG_FILE, "utf8").trim();
+  const notes = fs.readFileSync(process.env.MANIFEST_NOTES_FILE, "utf8").trim();
+  const entry = {
+    signature,
+    url: process.env.MANIFEST_URL,
+  };
+  const manifest = {
+    version: process.env.MANIFEST_VERSION,
+    notes,
+    pub_date: process.env.MANIFEST_PUB_DATE,
+    platforms: {
+      "darwin-aarch64": entry,
+      "darwin-aarch64-app": entry,
+    },
+  };
+  fs.writeFileSync(process.env.MANIFEST_OUT, JSON.stringify(manifest, null, 2) + "\n");
+'
+echo "$TARBALL ($(wc -c < "$TARBALL" | tr -d ' ') bytes) + $MANIFEST"
 
 if $DRY_RUN; then
   step "Done (dry run)"
@@ -140,11 +184,16 @@ if $DRY_RUN; then
 fi
 
 step "Publishing $TAG from ${TARGET:0:7}"
-gh release create "$TAG" "$ZIP" --repo "$REPO" --draft --target "$TARGET" \
+gh release create "$TAG" "$ZIP" "$TARBALL" "$MANIFEST" --repo "$REPO" --draft --target "$TARGET" \
   --title "on/c $VERSION" --notes-file "$NOTES_PATH"
 DONE="$DONE drafted"
 
-step "Checking the uploaded zip"
+step "Checking the uploaded release assets"
+for REQUIRED_ASSET in "$(basename "$ZIP")" "$(basename "$TARBALL")" "$(basename "$MANIFEST")"; do
+  FOUND_URL=$(gh api "repos/$REPO/releases?per_page=20" \
+    --jq ".[] | select(.tag_name == \"$TAG\") | .assets[] | select(.name == \"$REQUIRED_ASSET\") | .url")
+  [[ -n "$FOUND_URL" ]] || fail "can't find uploaded asset $REQUIRED_ASSET on the draft release"
+done
 ASSET_URL=$(gh api "repos/$REPO/releases?per_page=20" \
   --jq ".[] | select(.tag_name == \"$TAG\") | .assets[] | select(.name == \"$(basename "$ZIP")\") | .url")
 [[ -n "$ASSET_URL" ]] || fail "can't find the uploaded zip on the draft release"

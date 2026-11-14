@@ -33,6 +33,7 @@ import {
   resolveEffectiveScheme,
 } from './storage';
 import { TOUR_SPEED } from '../hooks/useLiveTutorial';
+import { normalizeMockUpdateVersion } from '../hooks/useAppUpdater';
 import {
   getAppRouteHref,
   getHomeRouteHref,
@@ -432,5 +433,15 @@ describe('on/c Numi evaluation engine', () => {
   it('configures live tutorial speed at 0.8x and handles empty app size storage gracefully', () => {
     expect(TOUR_SPEED).toBe(0.8);
     expect(loadSavedAppSize()).toBeNull();
+  });
+
+  it('normalizes and validates mock update version query params safely', () => {
+    expect(normalizeMockUpdateVersion('1.0.1')).toBe('1.0.1');
+    expect(normalizeMockUpdateVersion('v1.2.0')).toBe('1.2.0');
+    expect(normalizeMockUpdateVersion(' 2.0.0-rc.1 ')).toBe('2.0.0-rc.1');
+    expect(normalizeMockUpdateVersion('')).toBeNull();
+    expect(normalizeMockUpdateVersion(null)).toBeNull();
+    expect(normalizeMockUpdateVersion('javascript:alert(1)')).toBeNull();
+    expect(normalizeMockUpdateVersion('1.0')).toBeNull();
   });
 });
