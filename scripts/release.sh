@@ -123,9 +123,14 @@ else
   NEW=$(changes feat)
   FIXED=$(changes fix)
   {
-    echo "## What's new"
-    echo "${NEW:-- Initial public release of on/c}"
-    if [[ -n "$FIXED" ]]; then printf '\n## Fixes\n%s\n' "$FIXED"; fi
+    if [[ -n "$NEW" ]]; then
+      printf "## What's new\n%s\n" "$NEW"
+      if [[ -n "$FIXED" ]]; then printf '\n## Fixes\n%s\n' "$FIXED"; fi
+    elif [[ -n "$FIXED" ]]; then
+      printf "## Fixes\n%s\n" "$FIXED"
+    else
+      printf "## What's new\n- Maintenance and polish\n"
+    fi
     cat <<EOF
 
 **Requirements:** Apple Silicon Mac, macOS 13 (Ventura) or later — or use the [live web app](https://mj0lken.github.io/on-c/) in any modern browser.

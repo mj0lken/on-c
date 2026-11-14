@@ -33,7 +33,7 @@ import {
   resolveEffectiveScheme,
 } from './storage';
 import { TOUR_SPEED } from '../hooks/useLiveTutorial';
-import { normalizeMockUpdateVersion } from '../hooks/useAppUpdater';
+import { normalizeMockUpdateVersion, resolveInitialAppVersion } from '../hooks/useAppUpdater';
 import {
   getAppRouteHref,
   getHomeRouteHref,
@@ -443,5 +443,6 @@ describe('on/c Numi evaluation engine', () => {
     expect(normalizeMockUpdateVersion(null)).toBeNull();
     expect(normalizeMockUpdateVersion('javascript:alert(1)')).toBeNull();
     expect(normalizeMockUpdateVersion('1.0')).toBeNull();
+    expect(resolveInitialAppVersion()).toMatch(/^\d+\.\d+\.\d+/);
   });
 });

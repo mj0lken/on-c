@@ -12,9 +12,16 @@ export interface UseAppUpdaterOptions {
 }
 
 export interface AppUpdaterState {
+  currentVersion: string;
   availableVersion: string | null;
   isInstalling: boolean;
   installUpdate: () => Promise<void>;
+}
+
+export function resolveInitialAppVersion(): string {
+  const raw = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0';
+  const cleaned = raw.trim().replace(/^v/i, '');
+  return cleaned || '1.0.0';
 }
 
 export function normalizeMockUpdateVersion(raw: string | null): string | null {
@@ -24,6 +31,7 @@ export function normalizeMockUpdateVersion(raw: string | null): string | null {
 }
 
 export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppUpdaterState {
+  const [currentVersion, setCurrentVersion] = useState<string>(resolveInitialAppVersion);
   const [availableVersion, setAvailableVersion] = useState<string | null>(() => {
     if (!isTauri && import.meta.env.DEV && typeof window !== 'undefined') {
       return normalizeMockUpdateVersion(
@@ -72,6 +80,17 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
       };
     }
 
+    void import('@tauri-apps/api/app')
+      .then(({ getVersion }) => getVersion())
+      .then((ver) => {
+        if (mountedRef.current && ver) {
+          setCurrentVersion(ver.trim().replace(/^v/i, ''));
+        }
+      })
+      .catch(() => {
+        // Keep compile-time fallback version if unavailable.
+      });
+
     const initialTimer = window.setTimeout(() => {
       void checkForUpdate();
     }, INITIAL_CHECK_DELAY_MS);
@@ -111,6 +130,7 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
       if (!mountedRef.current) return;
       isInstallingRef.current = false;
       setIsInstalling(false);
+      setCurrentVersion(availableVersion);
       setAvailableVersion(null);
       onNotify(`Updated to v${availableVersion}`);
       return;
@@ -158,6 +178,7 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
   }, [availableVersion, isTauri, onNotify]);
 
   return {
+    currentVersion,
     availableVersion,
     isInstalling,
     installUpdate,

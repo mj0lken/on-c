@@ -142,6 +142,7 @@ export const App = forwardRef<AppHandle, AppProps>(
     }, []);
 
     const {
+      currentVersion: appVersion,
       availableVersion: updateAvailableVersion,
       isInstalling: isInstallingUpdate,
       installUpdate,
@@ -800,6 +801,11 @@ export const App = forwardRef<AppHandle, AppProps>(
                 fxState={fxState}
                 isRefreshingFx={isRefreshingFx}
                 archivedTabs={archivedTabs}
+                appVersion={appVersion}
+                isTauri={isTauri}
+                updateAvailableVersion={updateAvailableVersion}
+                isInstallingUpdate={isInstallingUpdate}
+                onInstallUpdate={() => void installUpdate()}
                 onUpdateSettings={handleUpdateSettings}
                 onRefreshRates={() => void handleRefreshRates(true)}
                 onRestoreArchivedTab={handleRestoreArchivedTab}

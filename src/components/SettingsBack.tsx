@@ -16,6 +16,11 @@ interface SettingsBackProps {
   fxState: ExchangeRatesState;
   isRefreshingFx: boolean;
   archivedTabs: ArchivedTab[];
+  appVersion: string;
+  isTauri?: boolean;
+  updateAvailableVersion?: string | null;
+  isInstallingUpdate?: boolean;
+  onInstallUpdate?: () => void;
   onUpdateSettings: (patch: Partial<CalculatorSettings>) => void;
   onRefreshRates: () => void;
   onRestoreArchivedTab: (archiveId: string) => void;
@@ -43,6 +48,11 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
   fxState,
   isRefreshingFx,
   archivedTabs,
+  appVersion,
+  isTauri = false,
+  updateAvailableVersion = null,
+  isInstallingUpdate = false,
+  onInstallUpdate,
   onUpdateSettings,
   onRefreshRates,
   onRestoreArchivedTab,
@@ -309,7 +319,34 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
           </div>
         </section>
 
-        {/* 8. Archived Sheets (Restorable & Deletable) */}
+        {/* 8. Version & Updates */}
+        <section className="setting-row">
+          <div className="setting-info">
+            <span className="setting-label">Version</span>
+            <span className="setting-desc">
+              {updateAvailableVersion
+                ? `v${updateAvailableVersion} update available`
+                : isTauri
+                  ? 'Up to date'
+                  : 'Web app'}
+            </span>
+          </div>
+          <div className="setting-inline-controls">
+            <span className="version-badge">v{appVersion}</span>
+            {updateAvailableVersion && onInstallUpdate && (
+              <button
+                type="button"
+                className="secondary-btn version-update-btn"
+                onClick={onInstallUpdate}
+                disabled={isInstallingUpdate}
+              >
+                {isInstallingUpdate ? 'Updating…' : 'Update'}
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* 9. Archived Sheets (Restorable & Deletable) */}
         <section className="archive-section" aria-label="Archived sheets">
           <div className="archive-section-header">
             <span className="setting-label">
@@ -366,6 +403,9 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
 
       <footer className="calc-footer">
         <span className="footer-muted">⌘T new tab · ⌘W archive tab · /help reference</span>
+        <span className="settings-footer-version" aria-label={`on/c version ${appVersion}`}>
+          v{appVersion}
+        </span>
       </footer>
     </div>
   );

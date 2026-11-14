@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { CalculatorTab } from '../types';
 
 interface TabBarProps {
@@ -36,6 +36,25 @@ export const TabBar: React.FC<TabBarProps> = ({
   const [draftTitle, setDraftTitle] = useState('');
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const updateTipId = `update-tip-${useId().replace(/:/g, '')}`;
+
+  useEffect(() => {
+    if (updateAvailableVersion && !isInstallingUpdate && typeof window !== 'undefined') {
+      const wireFn = (window as unknown as { __wireInterestHints?: () => void })
+        .__wireInterestHints;
+      wireFn?.();
+    }
+  }, [updateAvailableVersion, isInstallingUpdate]);
+
+  const updateTipCoords = (btn: HTMLButtonElement) => {
+    const popoverEl = document.getElementById(updateTipId);
+    if (!popoverEl) return;
+    const r = btn.getBoundingClientRect();
+    const topPos = r.bottom + 6;
+    const rightPos = Math.max(10, window.innerWidth - r.right - 12);
+    popoverEl.style.setProperty('--tip-top', `${topPos}px`);
+    popoverEl.style.setProperty('--tip-right', `${rightPos}px`);
+  };
 
   const handleWindowAction = async (action: 'close' | 'minimize' | 'zoom') => {
     try {
@@ -146,46 +165,59 @@ export const TabBar: React.FC<TabBarProps> = ({
                 />
               </span>
             ) : (
-              <button
-                type="button"
-                className="icon-btn update-alert-btn"
-                onClick={onInstallUpdate}
-                title={`Update available (v${updateAvailableVersion}) — click to install and restart`}
-                aria-label={`Update on/c to version ${updateAvailableVersion}`}
-              >
-                <svg
-                  className="update-alert-glow"
-                  width="15"
-                  height="15"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
+              <>
+                <button
+                  type="button"
+                  className="icon-btn update-alert-btn"
+                  onClick={onInstallUpdate}
+                  aria-label="Update to latest version"
+                  {...({
+                    interestfor: updateTipId,
+                  } as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+                  onPointerEnter={(e) => updateTipCoords(e.currentTarget)}
+                  onFocus={(e) => updateTipCoords(e.currentTarget)}
                 >
-                  <path
-                    d="M8 2.9v6.1"
-                    stroke="currentColor"
-                    strokeWidth="2.6"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="8" cy="12.45" r="1.5" fill="currentColor" />
-                </svg>
-                <svg
-                  className="update-alert-icon"
-                  width="15"
-                  height="15"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  aria-hidden="true"
+                  <svg
+                    className="update-alert-glow"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 2.9v6.1"
+                      stroke="currentColor"
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="8" cy="12.45" r="1.5" fill="currentColor" />
+                  </svg>
+                  <svg
+                    className="update-alert-icon"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8 2.9v6.1"
+                      stroke="currentColor"
+                      strokeWidth="2.15"
+                      strokeLinecap="round"
+                    />
+                    <circle cx="8" cy="12.45" r="1.25" fill="currentColor" />
+                  </svg>
+                </button>
+                <div
+                  id={updateTipId}
+                  className="update-hint-popover"
+                  {...({ popover: 'hint' } as React.HTMLAttributes<HTMLDivElement>)}
                 >
-                  <path
-                    d="M8 2.9v6.1"
-                    stroke="currentColor"
-                    strokeWidth="2.15"
-                    strokeLinecap="round"
-                  />
-                  <circle cx="8" cy="12.45" r="1.25" fill="currentColor" />
-                </svg>
-              </button>
+                  Update to latest version
+                </div>
+              </>
             ))}
 
           <button
