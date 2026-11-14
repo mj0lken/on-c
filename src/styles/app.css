@@ -585,73 +585,73 @@ html:has(.app-stage.is-tauri) #root {
   letter-spacing: -0.01em;
 }
 
-/* Glowing, pulsing `!` self-update button left of `+` */
+/* Boxless glowing, pulsing `!` self-update glyph left of `+` */
 .update-alert-btn {
   position: relative;
-  margin-inline-end: 2px;
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: transparent;
 }
 
 .update-alert-btn:hover,
 .update-alert-btn:focus-visible {
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--bg-hover);
+}
+
+.update-alert-glow,
+.update-alert-icon {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.update-alert-glow {
+  position: absolute;
+  filter: blur(3.5px);
+  opacity: 0.55;
+  scale: 1.12;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: update-glyph-glow-pulse 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
 }
 
 .update-alert-icon {
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 68%, transparent));
+  filter: drop-shadow(0 0 2.5px color-mix(in srgb, var(--accent) 60%, transparent));
 
   @media (prefers-reduced-motion: no-preference) {
-    animation: update-icon-breathe 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: update-glyph-pulse 1.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }
 
-.update-alert-btn::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  border-radius: 6px;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 62%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  opacity: 0.58;
-  scale: 1;
-  pointer-events: none;
-
-  @media (prefers-reduced-motion: no-preference) {
-    animation: update-halo-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  }
-}
-
+.update-alert-btn:hover .update-alert-glow,
+.update-alert-btn:focus-visible .update-alert-glow,
 .update-alert-btn:hover .update-alert-icon,
-.update-alert-btn:focus-visible .update-alert-icon,
-.update-alert-btn:hover::after,
-.update-alert-btn:focus-visible::after {
+.update-alert-btn:focus-visible .update-alert-icon {
   animation-play-state: paused;
 }
 
-@keyframes update-halo-pulse {
+@keyframes update-glyph-glow-pulse {
   0%,
   100% {
     scale: 0.92;
-    opacity: 0.42;
+    opacity: 0.18;
   }
   50% {
-    scale: 1.24;
-    opacity: 0.94;
+    scale: 1.48;
+    opacity: 0.95;
   }
 }
 
-@keyframes update-icon-breathe {
+@keyframes update-glyph-pulse {
   0%,
   100% {
-    scale: 1;
-    opacity: 0.9;
+    scale: 0.96;
+    opacity: 0.72;
   }
   50% {
-    scale: 1.09;
+    scale: 1.15;
     opacity: 1;
   }
 }
@@ -659,7 +659,6 @@ html:has(.app-stage.is-tauri) #root {
 .update-spinner-slot {
   width: 26px;
   height: 26px;
-  margin-inline-end: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
