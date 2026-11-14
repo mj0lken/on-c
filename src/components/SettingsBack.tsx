@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { CURRENCIES, ExchangeRatesState } from '../engine/currencies';
 import { getArchiveStatusInfo } from '../engine/archive';
+import { UpdateCheckResult } from '../hooks/useAppUpdater';
 
 interface SettingsBackProps {
   settings: CalculatorSettings;
@@ -19,7 +20,12 @@ interface SettingsBackProps {
   appVersion: string;
   isTauri?: boolean;
   updateAvailableVersion?: string | null;
+  isCheckingUpdate?: boolean;
   isInstallingUpdate?: boolean;
+  lastCheckResult?: UpdateCheckResult;
+  canCheckForUpdates?: boolean;
+  toastMessage?: string | null;
+  onCheckForUpdates?: () => void;
   onInstallUpdate?: () => void;
   onUpdateSettings: (patch: Partial<CalculatorSettings>) => void;
   onRefreshRates: () => void;
@@ -51,7 +57,12 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
   appVersion,
   isTauri = false,
   updateAvailableVersion = null,
+  isCheckingUpdate = false,
   isInstallingUpdate = false,
+  lastCheckResult = 'idle',
+  canCheckForUpdates = false,
+  toastMessage = null,
+  onCheckForUpdates,
   onInstallUpdate,
   onUpdateSettings,
   onRefreshRates,
@@ -326,22 +337,45 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
             <span className="setting-desc">
               {updateAvailableVersion
                 ? `v${updateAvailableVersion} update available`
-                : isTauri
-                  ? 'Up to date'
-                  : 'Web app'}
+                : isCheckingUpdate
+                  ? 'Checking for updates…'
+                  : lastCheckResult === 'up-to-date'
+                    ? 'Up to date · Checked just now'
+                    : lastCheckResult === 'error'
+                      ? 'Could not reach update server'
+                      : isTauri
+                        ? 'Up to date'
+                        : 'Web app'}
             </span>
           </div>
           <div className="setting-inline-controls">
-            <span className="version-badge">v{appVersion}</span>
-            {updateAvailableVersion && onInstallUpdate && (
-              <button
-                type="button"
-                className="secondary-btn version-update-btn"
-                onClick={onInstallUpdate}
-                disabled={isInstallingUpdate}
-              >
-                {isInstallingUpdate ? 'Updating…' : 'Update'}
-              </button>
+            {updateAvailableVersion && onInstallUpdate ? (
+              <>
+                <span className="version-badge">v{appVersion}</span>
+                <button
+                  type="button"
+                  className="secondary-btn version-update-btn"
+                  onClick={onInstallUpdate}
+                  disabled={isInstallingUpdate}
+                >
+                  {isInstallingUpdate ? 'Updating…' : 'Update'}
+                </button>
+              </>
+            ) : canCheckForUpdates && onCheckForUpdates ? (
+              <div className={`version-hover-slot ${isCheckingUpdate ? 'is-checking' : ''}`}>
+                <button
+                  type="button"
+                  className="secondary-btn version-check-btn"
+                  onClick={onCheckForUpdates}
+                  disabled={isCheckingUpdate}
+                  aria-label="Check for updates"
+                >
+                  {isCheckingUpdate ? 'Checking…' : 'Check'}
+                </button>
+                <span className="version-badge">v{appVersion}</span>
+              </div>
+            ) : (
+              <span className="version-badge">v{appVersion}</span>
             )}
           </div>
         </section>
@@ -402,7 +436,13 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
       </div>
 
       <footer className="calc-footer">
-        <span className="footer-muted">⌘T new tab · ⌘W archive tab · /help reference</span>
+        {toastMessage ? (
+          <span className="status-toast" role="status" aria-live="polite">
+            {toastMessage}
+          </span>
+        ) : (
+          <span className="footer-muted">⌘T new tab · ⌘W archive tab · /help reference</span>
+        )}
         <span className="settings-footer-version" aria-label={`on/c version ${appVersion}`}>
           v{appVersion}
         </span>

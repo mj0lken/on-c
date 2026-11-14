@@ -1,0 +1,314 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semantic version to release from main (e.g. 1.0.4)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: release-${{ github.ref_name }}-${{ inputs.version || 'tag' }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Validate version & check existing release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+      version: ${{ steps.check.outputs.version }}
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            RAW_VERSION="${INPUT_VERSION#v}"
+          else
+            RAW_VERSION="${REF_NAME#v}"
+          fi
+
+          if ! [[ "$RAW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid semantic version '$RAW_VERSION' (expected X.Y.Z)."
+            exit 1
+          fi
+
+          VERSION="$RAW_VERSION"
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          if REL_JSON=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,assets 2>/dev/null); then
+            ALREADY_COMPLETE=$(REL_JSON="$REL_JSON" VERSION="$VERSION" node -e '
+              const rel = JSON.parse(process.env.REL_JSON);
+              const names = new Set((rel.assets || []).map((a) => a.name));
+              const ok =
+                !rel.isDraft &&
+                names.has(`on-c-${process.env.VERSION}-arm64.zip`) &&
+                names.has("on-c.app.tar.gz") &&
+                names.has("latest.json");
+              process.stdout.write(ok ? "true" : "false");
+            ')
+            if [[ "$ALREADY_COMPLETE" == "true" ]]; then
+              echo "Release $TAG is already published with verified assets; skipping duplicate build."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Build, sign, publish release & update Homebrew tap
+    needs: preflight
+    if: needs.preflight.outputs.skip != 'true'
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.preflight.outputs.version }}
+      TAG: ${{ needs.preflight.outputs.tag }}
+      CARGO_TARGET_DIR: /tmp/onc-tauri-target
+    steps:
+      - name: Verify signing key secret is configured
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          if [[ "$HAS_KEY" != "true" ]]; then
+            echo "::error::Missing TAURI_SIGNING_PRIVATE_KEY repository secret. Set it with: gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/onc.key"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'refs/heads/main' || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: aarch64-apple-darwin
+          components: clippy
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: "src-tauri -> /tmp/onc-tauri-target"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, unit tests & Rust lints
+        run: |
+          npm run typecheck
+          npm test
+          cargo test --manifest-path src-tauri/Cargo.toml
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: Build macOS .app, verify bundle & create arm64 zip
+        id: package
+        run: |
+          set -euo pipefail
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          VERSION="$VERSION" BUILD_NUMBER="$BUILD_NUMBER" ./scripts/build-app.sh
+          codesign --verify --strict build/on-c.app
+
+          PLIST_VER=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" build/on-c.app/Contents/Info.plist)
+          if [[ "$PLIST_VER" != "$VERSION" ]]; then
+            echo "::error::Expected CFBundleShortVersionString=$VERSION, got $PLIST_VER"
+            exit 1
+          fi
+
+          ZIP="build/on-c-$VERSION-arm64.zip"
+          rm -f "$ZIP"
+          ditto -c -k --sequesterRsrc --keepParent build/on-c.app "$ZIP"
+          SHA=$(shasum -a 256 "$ZIP" | cut -d' ' -f1)
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        env:
+          SHA: ${{ steps.package.outputs.sha }}
+          ZIP: ${{ steps.package.outputs.zip }}
+        run: |
+          set -euo pipefail
+          NOTES_PATH="build/release-notes-$VERSION.md"
+          PREVIOUS=$(git tag --merged HEAD --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -Fxv "$TAG" | head -n 1 || true)
+
+          changes() {
+            git log --no-merges --format='%s' "${PREVIOUS:+$PREVIOUS..}HEAD" \
+              -- src src-tauri index.html package.json \
+              | sed -nE "s/^$1(\([^)]*\))?: (.*)$/- \2/p"
+          }
+          NEW=$(changes feat)
+          FIXED=$(changes fix)
+
+          {
+            if [[ -n "$NEW" ]]; then
+              printf "## What's new\n%s\n" "$NEW"
+              if [[ -n "$FIXED" ]]; then printf '\n## Fixes\n%s\n' "$FIXED"; fi
+            elif [[ -n "$FIXED" ]]; then
+              printf "## Fixes\n%s\n" "$FIXED"
+            else
+              printf "## What's new\n- Maintenance and polish\n"
+            fi
+            cat <<EOF
+
+          **Requirements:** Apple Silicon Mac, macOS 13 (Ventura) or later — or use the [live web app](https://mj0lken.github.io/on-c/) in any modern browser.
+
+          **Install or update:** Click the pulsing **!** icon in the **on/c** title bar to update in place, run \`brew install --cask mj0lken/tap/on-c\` (or \`brew upgrade --cask on-c\`), or unzip, drag **on-c.app** to Applications and open it. The app isn't signed with a paid Apple Developer ID yet, so the first launch of a fresh download is blocked: click **Done**, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
+
+          SHA-256 of \`$(basename "$ZIP")\`: \`$SHA\`
+          EOF
+          } > "$NOTES_PATH"
+          sed -i '' -E 's/^          //' "$NOTES_PATH"
+
+      - name: Sign updater bundle & write latest.json
+        env:
+          SIGNING_KEY_CONTENT: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          TARBALL="build/on-c.app.tar.gz"
+          TARBALL_SIG="build/on-c.app.tar.gz.sig"
+          MANIFEST="build/latest.json"
+          NOTES_PATH="build/release-notes-$VERSION.md"
+          KEY_FILE="$RUNNER_TEMP/onc-updater.key"
+          trap 'rm -f "$KEY_FILE"' EXIT
+
+          umask 077
+          printf '%s\n' "$SIGNING_KEY_CONTENT" > "$KEY_FILE"
+
+          rm -f "$TARBALL" "$TARBALL_SIG" "$MANIFEST"
+          COPYFILE_DISABLE=1 tar -czf "$TARBALL" -C build on-c.app
+          node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
+            -f "$KEY_FILE" \
+            --app-version "$VERSION" \
+            "$TARBALL" >/dev/null
+          test -s "$TARBALL_SIG"
+
+          PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          UPDATER_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/on-c.app.tar.gz"
+          MANIFEST_VERSION="$VERSION" \
+          MANIFEST_PUB_DATE="$PUB_DATE" \
+          MANIFEST_URL="$UPDATER_URL" \
+          MANIFEST_NOTES_FILE="$NOTES_PATH" \
+          MANIFEST_SIG_FILE="$TARBALL_SIG" \
+          MANIFEST_OUT="$MANIFEST" \
+          node -e '
+            const fs = require("node:fs");
+            const signature = fs.readFileSync(process.env.MANIFEST_SIG_FILE, "utf8").trim();
+            const notes = fs.readFileSync(process.env.MANIFEST_NOTES_FILE, "utf8").trim();
+            const entry = { signature, url: process.env.MANIFEST_URL };
+            const manifest = {
+              version: process.env.MANIFEST_VERSION,
+              notes,
+              pub_date: process.env.MANIFEST_PUB_DATE,
+              platforms: {
+                "darwin-aarch64": entry,
+                "darwin-aarch64-app": entry,
+              },
+            };
+            fs.writeFileSync(process.env.MANIFEST_OUT, JSON.stringify(manifest, null, 2) + "\n");
+          '
+
+      - name: Publish GitHub Release & verify uploaded assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.package.outputs.sha }}
+          ZIP: ${{ steps.package.outputs.zip }}
+        run: |
+          set -euo pipefail
+          TARGET_COMMIT=$(git rev-parse HEAD)
+          TARBALL="build/on-c.app.tar.gz"
+          MANIFEST="build/latest.json"
+          NOTES_PATH="build/release-notes-$VERSION.md"
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+          fi
+
+          gh release create "$TAG" "$ZIP" "$TARBALL" "$MANIFEST" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target "$TARGET_COMMIT" \
+            --title "on/c $VERSION" \
+            --notes-file "$NOTES_PATH"
+
+          for REQUIRED_ASSET in "$(basename "$ZIP")" "$(basename "$TARBALL")" "$(basename "$MANIFEST")"; do
+            FOUND_URL=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=20" \
+              --jq ".[] | select(.tag_name == \"$TAG\") | .assets[] | select(.name == \"$REQUIRED_ASSET\") | .url")
+            [[ -n "$FOUND_URL" ]] || { echo "::error::Missing uploaded asset $REQUIRED_ASSET"; exit 1; }
+          done
+
+          ASSET_URL=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=20" \
+            --jq ".[] | select(.tag_name == \"$TAG\") | .assets[] | select(.name == \"$(basename "$ZIP")\") | .url")
+          gh api -H "Accept: application/octet-stream" "$ASSET_URL" > "$RUNNER_TEMP/uploaded.zip"
+          UPLOADED_SHA=$(shasum -a 256 "$RUNNER_TEMP/uploaded.zip" | cut -d' ' -f1)
+          rm -f "$RUNNER_TEMP/uploaded.zip"
+          [[ "$UPLOADED_SHA" == "$SHA" ]] || { echo "::error::Uploaded zip SHA mismatch ($UPLOADED_SHA != $SHA)"; exit 1; }
+
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" || true
+
+      - name: Update Homebrew tap cask
+        env:
+          SHA: ${{ steps.package.outputs.sha }}
+          TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAP_REPO="mj0lken/homebrew-tap"
+          TAP_DIR="$RUNNER_TEMP/homebrew-tap"
+          KEY_PATH="$RUNNER_TEMP/tap_deploy_key"
+          trap 'rm -rf "$KEY_PATH" "$TAP_DIR"' EXIT
+
+          if [[ -n "$TAP_DEPLOY_KEY" ]]; then
+            umask 077
+            printf '%s\n' "$TAP_DEPLOY_KEY" > "$KEY_PATH"
+            mkdir -p ~/.ssh
+            ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+            export GIT_SSH_COMMAND="ssh -i $KEY_PATH -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+            git clone "git@github.com:$TAP_REPO.git" "$TAP_DIR"
+          elif [[ -n "$TAP_TOKEN" ]]; then
+            git clone "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" "$TAP_DIR"
+          else
+            echo "::warning::Skipping Homebrew tap update: configure HOMEBREW_TAP_DEPLOY_KEY or HOMEBREW_TAP_TOKEN in repository secrets."
+            exit 0
+          fi
+
+          CASK_FILE="$TAP_DIR/Casks/on-c.rb"
+          sed -i '' -E \
+            -e "s/^  version \".*\"$/  version \"$VERSION\"/" \
+            -e "s/^  sha256 \".*\"$/  sha256 \"$SHA\"/" \
+            "$CASK_FILE"
+
+          grep -qx "  version \"$VERSION\"" "$CASK_FILE"
+          grep -qx "  sha256 \"$SHA\"" "$CASK_FILE"
+          brew style "$CASK_FILE"
+
+          git -C "$TAP_DIR" config user.name "github-actions[bot]"
+          git -C "$TAP_DIR" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git -C "$TAP_DIR" status --porcelain)" ]]; then
+            git -C "$TAP_DIR" commit -m "on-c $VERSION" -- Casks/on-c.rb
+            git -C "$TAP_DIR" push
+          fi

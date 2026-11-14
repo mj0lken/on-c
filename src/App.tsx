@@ -144,7 +144,11 @@ export const App = forwardRef<AppHandle, AppProps>(
     const {
       currentVersion: appVersion,
       availableVersion: updateAvailableVersion,
+      isChecking: isCheckingUpdate,
       isInstalling: isInstallingUpdate,
+      lastCheckResult,
+      canCheckForUpdates,
+      checkForUpdates,
       installUpdate,
     } = useAppUpdater({
       isTauri,
@@ -804,7 +808,12 @@ export const App = forwardRef<AppHandle, AppProps>(
                 appVersion={appVersion}
                 isTauri={isTauri}
                 updateAvailableVersion={updateAvailableVersion}
+                isCheckingUpdate={isCheckingUpdate}
                 isInstallingUpdate={isInstallingUpdate}
+                lastCheckResult={lastCheckResult}
+                canCheckForUpdates={canCheckForUpdates}
+                toastMessage={toastMessage}
+                onCheckForUpdates={() => void checkForUpdates()}
                 onInstallUpdate={() => void installUpdate()}
                 onUpdateSettings={handleUpdateSettings}
                 onRefreshRates={() => void handleRefreshRates(true)}

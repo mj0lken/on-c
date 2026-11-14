@@ -95,8 +95,9 @@ npm run build                     # type-check & build static web bundle into di
 Cutting a release (maintainers):
 
 ```bash
-./scripts/release.sh 1.0.0 --dry-run   # test, build, zip, check cask style & write release notes
-./scripts/release.sh 1.0.0             # publish GitHub release, verify uploaded zip & update homebrew-tap
+git tag v1.0.4 && git push origin v1.0.4  # trigger automated CI release, updater manifest & tap bump
+./scripts/release.sh 1.0.4 --dry-run      # or test, build, zip & verify cask locally
+./scripts/release.sh 1.0.4                # or publish locally & update homebrew-tap in one step
 ```
 
 ## Project layout
@@ -124,15 +125,17 @@ src/
     SettingsBack.tsx        180° 3D back-face preferences & restorable archived sheets
     ExportMenu.tsx          Bottom-right .md / .csv / clipboard export menu
   hooks/
-    useLiveTutorial.ts      Deterministic 5-step live demo engine with instant visitor takeover
+    useAppUpdater.ts          Signed Tauri self-updater, background poll & manual version check
+    useLiveTutorial.ts        Deterministic 5-step live demo engine with instant visitor takeover
 src-tauri/
-  src/lib.rs                Frameless macOS vibrancy window & sandboxed ~/Downloads file export
+  src/lib.rs                  Frameless macOS vibrancy window & sandboxed ~/Downloads file export
 scripts/
-  build-app.sh              Packages & ad-hoc signs build/on-c.app
-  release.sh                One-command GitHub release & Homebrew cask updater
+  build-app.sh                Packages & ad-hoc signs build/on-c.app
+  release.sh                  One-command local GitHub release & Homebrew cask updater
 .github/workflows/
-  ci.yml                    macOS build, test & .app bundle verification on PRs and main
-  pages.yml                 Automated GitHub Pages deployment to mj0lken.github.io/on-c/
+  ci.yml                      macOS build, test & .app bundle verification on PRs and main
+  pages.yml                   Automated GitHub Pages deployment to mj0lken.github.io/on-c/
+  release.yml                 Tag-driven signed macOS release, updater manifest & Homebrew tap CI
 ```
 
 ## License
