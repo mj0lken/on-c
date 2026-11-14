@@ -154,6 +154,22 @@ export const TabBar: React.FC<TabBarProps> = ({
                 aria-label={`Update on/c to version ${updateAvailableVersion}`}
               >
                 <svg
+                  className="update-alert-glow"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8 2.9v6.1"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="8" cy="12.45" r="1.5" fill="currentColor" />
+                </svg>
+                <svg
                   className="update-alert-icon"
                   width="15"
                   height="15"
