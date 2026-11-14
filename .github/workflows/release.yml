@@ -192,16 +192,12 @@ jobs:
           TARBALL_SIG="build/on-c.app.tar.gz.sig"
           MANIFEST="build/latest.json"
           NOTES_PATH="build/release-notes-$VERSION.md"
-          KEY_FILE="$RUNNER_TEMP/onc-updater.key"
-          trap 'rm -f "$KEY_FILE"' EXIT
-
-          umask 077
-          printf '%s\n' "$SIGNING_KEY_CONTENT" > "$KEY_FILE"
 
           rm -f "$TARBALL" "$TARBALL_SIG" "$MANIFEST"
           COPYFILE_DISABLE=1 tar -czf "$TARBALL" -C build on-c.app
-          node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
-            -f "$KEY_FILE" \
+          TAURI_SIGNING_PRIVATE_KEY="$(printf '%s' "$SIGNING_KEY_CONTENT" | tr -d '\r\n')" \
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
+            node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
             --app-version "$VERSION" \
             "$TARBALL" >/dev/null
           test -s "$TARBALL_SIG"
@@ -284,7 +280,7 @@ jobs:
 
           if [[ -n "$TAP_DEPLOY_KEY" ]]; then
             umask 077
-            printf '%s\n' "$TAP_DEPLOY_KEY" > "$KEY_PATH"
+            printf '%s\n' "${TAP_DEPLOY_KEY%$'\n'}" > "$KEY_PATH"
             mkdir -p ~/.ssh
             ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
             export GIT_SSH_COMMAND="ssh -i $KEY_PATH -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
