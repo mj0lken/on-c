@@ -10,6 +10,24 @@
   initial-value: 0px;
 }
 
+@property --arc-start {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --arc-end {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --progress-dash-animation {
+  syntax: '*';
+  inherits: false;
+  initial-value: , progress-dash 3s ease-in-out infinite;
+}
+
 :root {
   /* Light Theme (Crisp White Numi Page Surface + Red Wordmark & Accents) */
   --bg-stage-light: #ffffff;
@@ -565,6 +583,179 @@ html:has(.app-stage.is-tauri) #root {
   font-size: 11.5px;
   font-weight: 500;
   letter-spacing: -0.01em;
+}
+
+/* Glowing, pulsing `!` self-update button left of `+` */
+.update-alert-btn {
+  position: relative;
+  margin-inline-end: 2px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.update-alert-btn:hover,
+.update-alert-btn:focus-visible {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.update-alert-icon {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 68%, transparent));
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: update-icon-breathe 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+.update-alert-btn::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  opacity: 0.58;
+  scale: 1;
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: update-halo-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+}
+
+.update-alert-btn:hover .update-alert-icon,
+.update-alert-btn:focus-visible .update-alert-icon,
+.update-alert-btn:hover::after,
+.update-alert-btn:focus-visible::after {
+  animation-play-state: paused;
+}
+
+@keyframes update-halo-pulse {
+  0%,
+  100% {
+    scale: 0.92;
+    opacity: 0.42;
+  }
+  50% {
+    scale: 1.24;
+    opacity: 0.94;
+  }
+}
+
+@keyframes update-icon-breathe {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 0.9;
+  }
+  50% {
+    scale: 1.09;
+    opacity: 1;
+  }
+}
+
+.update-spinner-slot {
+  width: 26px;
+  height: 26px;
+  margin-inline-end: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-bar,
+progress.loading-spinner:indeterminate::-webkit-progress-value {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::slider-fill {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate {
+  --_from: calc(90deg + var(--arc-start, 0deg));
+  --_to: calc(90deg + var(--arc-end, 158deg));
+  --size: 15px;
+  --thickness: 2px;
+  --spinner-color: var(--accent);
+  --track-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  --spinner-duration: 1.35s;
+  --_used-spinner-duration: var(--spinner-duration);
+
+  position: relative;
+  display: inline-block;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  appearance: none;
+  background: conic-gradient(
+      from var(--_from),
+      var(--spinner-color) calc(var(--_to) - var(--_from)),
+      transparent 0
+    )
+    var(--track-color);
+
+  @supports (background-clip: border-area) {
+    background-clip: border-area;
+    border: var(--thickness) solid transparent;
+    background-origin: border-box;
+  }
+
+  @supports not (background-clip: border-area) {
+    --clip-boundary: calc(100% - var(--thickness));
+    mask-image: radial-gradient(
+      farthest-side,
+      transparent var(--clip-boundary),
+      black var(--clip-boundary)
+    );
+    border: 0;
+  }
+
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    --spinner-color: CanvasText;
+    --track-color: Canvas;
+  }
+
+  animation:
+    progress-spin var(--_used-spinner-duration) linear infinite
+    var(--progress-dash-animation, );
+
+  @media (prefers-reduced-motion: reduce) {
+    --_used-spinner-duration: 6s;
+    --progress-dash-animation: ;
+    --arc-end: 158deg;
+  }
+}
+
+@keyframes progress-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes progress-dash {
+  from {
+    --arc-start: 0deg;
+    --arc-end: 3deg;
+  }
+  50% {
+    --arc-start: 100deg;
+    --arc-end: 358deg;
+  }
+  to {
+    --arc-start: 360deg;
+    --arc-end: 363deg;
+  }
 }
 
 /* Borderless Minimal Tabs Strip */

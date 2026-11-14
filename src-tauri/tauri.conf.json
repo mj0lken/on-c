@@ -40,5 +40,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERDMTFDQTJDNDQ5OEVDMTgKUldRWTdKaEVMTW9SM0JBTEYvTmxNbWNDTjcxUFBqV3V5aW9TeCsyendTc0twQm02bUc3Yk9TOUkK",
+      "endpoints": [
+        "https://github.com/mj0lken/on-c/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true
+    }
   }
 }

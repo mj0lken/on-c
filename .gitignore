@@ -8,4 +8,6 @@ src-tauri/gen/
 *.tsbuildinfo
 .env
 .env.*
+*.key
+*.sig
 .DS_Store

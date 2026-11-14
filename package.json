@@ -31,6 +31,8 @@
     "@microsoft/focusgroup-polyfill": "^1.6.0",
     "@oddbird/popover-polyfill": "^0.7.3",
     "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "interestfor": "^1.0.14",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

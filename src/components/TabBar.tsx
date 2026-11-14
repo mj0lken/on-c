@@ -6,6 +6,9 @@ interface TabBarProps {
   activeTabId: string;
   canCloseActiveTab: boolean;
   isTauri?: boolean;
+  updateAvailableVersion?: string | null;
+  isInstallingUpdate?: boolean;
+  onInstallUpdate?: () => void;
   onSelectTab: (tabId: string) => void;
   onAddTab: () => void;
   onCloseTab: (tabId: string) => void;
@@ -19,6 +22,9 @@ export const TabBar: React.FC<TabBarProps> = ({
   activeTabId,
   canCloseActiveTab,
   isTauri = false,
+  updateAvailableVersion = null,
+  isInstallingUpdate = false,
+  onInstallUpdate,
   onSelectTab,
   onAddTab,
   onCloseTab,
@@ -127,6 +133,45 @@ export const TabBar: React.FC<TabBarProps> = ({
         </span>
 
         <div className="titlebar-right">
+          {updateAvailableVersion &&
+            onInstallUpdate &&
+            (isInstallingUpdate ? (
+              <span
+                className="update-spinner-slot"
+                title={`Installing on/c v${updateAvailableVersion}…`}
+              >
+                <progress
+                  aria-label={`Installing update version ${updateAvailableVersion}`}
+                  className="loading-spinner update-spinner"
+                />
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="icon-btn update-alert-btn"
+                onClick={onInstallUpdate}
+                title={`Update available (v${updateAvailableVersion}) — click to install and restart`}
+                aria-label={`Update on/c to version ${updateAvailableVersion}`}
+              >
+                <svg
+                  className="update-alert-icon"
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M8 2.9v6.1"
+                    stroke="currentColor"
+                    strokeWidth="2.15"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="8" cy="12.45" r="1.25" fill="currentColor" />
+                </svg>
+              </button>
+            ))}
+
           <button
             type="button"
             className="icon-btn"

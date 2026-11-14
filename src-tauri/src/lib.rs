@@ -63,17 +63,63 @@ fn save_export_file(filename: String, content: String) -> Result<String, String>
     Ok(format!("~/Downloads/{final_name}"))
 }
 
+const RELEASES_LATEST_URL: &str = "https://github.com/mj0lken/on-c/releases/latest";
+
+#[tauri::command]
+fn open_release_page() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("/usr/bin/open")
+            .arg(RELEASES_LATEST_URL)
+            .status()
+            .map_err(|e| format!("Failed to open browser: {e}"))
+            .and_then(|status| {
+                if status.success() {
+                    Ok(())
+                } else {
+                    Err("Failed to launch browser for release page".to_string())
+                }
+            })
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err("Unsupported platform".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![save_export_file])
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .invoke_handler(tauri::generate_handler![save_export_file, open_release_page])
         .run(tauri::generate_context!())
         .expect("error while running on/c application");
 }
 
 #[cfg(test)]
 mod tests {
-    use super::sanitize_export_parts;
+    use super::{RELEASES_LATEST_URL, sanitize_export_parts};
+
+    #[test]
+    fn release_fallback_url_uses_https_github_releases() {
+        assert!(RELEASES_LATEST_URL.starts_with("https://github.com/mj0lken/on-c/releases/"));
+    }
+
+    #[test]
+    fn updater_config_defines_https_endpoint_and_signed_version_enforcement() {
+        let conf: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).expect("valid tauri.conf.json");
+        let updater = &conf["plugins"]["updater"];
+        let pubkey = updater["pubkey"].as_str().expect("updater pubkey string");
+        assert!(pubkey.len() > 40);
+        let endpoints = updater["endpoints"].as_array().expect("endpoints array");
+        assert_eq!(
+            endpoints[0].as_str(),
+            Some("https://github.com/mj0lken/on-c/releases/latest/download/latest.json")
+        );
+        assert_eq!(updater["requireSignedVersion"].as_bool(), Some(true));
+    }
 
     #[test]
     fn preserves_supported_extensions() {

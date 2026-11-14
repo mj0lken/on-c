@@ -13,10 +13,23 @@ if [[ ! -d node_modules ]]; then
   npm ci
 fi
 
-# Build frontend with relative asset base for bundled Tauri WebView.
-VITE_BASE_PATH="./" node ./node_modules/@tauri-apps/cli/tauri.js build \
-  --bundles app \
-  --target "$TARGET_TRIPLE"
+# The version comes from the release tag, not a commit: VERSION when releasing, otherwise the latest
+# tag, so a local build says which release it's built on. The build number only ever goes up.
+VERSION="${VERSION:-$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null | sed 's/^v//' || true)}"
+BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}"
+
+# Build frontend with relative asset base for bundled Tauri WebView, stamping VERSION into package_info()
+# at compile time so tauri-plugin-updater knows the exact running version.
+if [[ -n "$VERSION" ]]; then
+  VITE_BASE_PATH="./" node ./node_modules/@tauri-apps/cli/tauri.js build \
+    --bundles app \
+    --target "$TARGET_TRIPLE" \
+    -c "{\"version\":\"$VERSION\"}"
+else
+  VITE_BASE_PATH="./" node ./node_modules/@tauri-apps/cli/tauri.js build \
+    --bundles app \
+    --target "$TARGET_TRIPLE"
+fi
 
 BUILT_APP="$CARGO_TARGET_DIR/$TARGET_TRIPLE/release/bundle/macos/on-c.app"
 if [[ ! -d "$BUILT_APP" ]]; then
@@ -28,10 +41,6 @@ rm -rf "$APP"
 mkdir -p build
 cp -R "$BUILT_APP" "$APP"
 
-# The version comes from the release tag, not a commit: VERSION when releasing, otherwise the latest
-# tag, so a local build says which release it's built on. The build number only ever goes up.
-VERSION="${VERSION:-$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null | sed 's/^v//' || true)}"
-BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}"
 if [[ -n "$VERSION" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 fi

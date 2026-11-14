@@ -53,6 +53,7 @@ import { SettingsBack } from './components/SettingsBack';
 import { HelpDialog, HelpDialogHandle } from './components/HelpDialog';
 import { SymbolToolbar, SymbolToolbarHandle } from './components/SymbolToolbar';
 import { ExportMenu } from './components/ExportMenu';
+import { useAppUpdater } from './hooks/useAppUpdater';
 
 interface HistorySnapshot {
   rows: SheetRow[];
@@ -139,6 +140,15 @@ export const App = forwardRef<AppHandle, AppProps>(
         setToastMessage(null);
       }, 2200);
     }, []);
+
+    const {
+      availableVersion: updateAvailableVersion,
+      isInstalling: isInstallingUpdate,
+      installUpdate,
+    } = useAppUpdater({
+      isTauri,
+      onNotify: showToast,
+    });
 
     useEffect(() => {
       syncMetaColorScheme(settings.theme, isTauri, osIsDark);
@@ -724,6 +734,9 @@ export const App = forwardRef<AppHandle, AppProps>(
                 activeTabId={activeTab.id}
                 canCloseActiveTab={canCloseActiveTab}
                 isTauri={isTauri}
+                updateAvailableVersion={updateAvailableVersion}
+                isInstallingUpdate={isInstallingUpdate}
+                onInstallUpdate={() => void installUpdate()}
                 onSelectTab={setActiveTabId}
                 onAddTab={handleAddTab}
                 onCloseTab={handleCloseTab}
