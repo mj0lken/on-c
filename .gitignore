@@ -11,3 +11,7 @@ src-tauri/gen/
 *.key
 *.sig
 .DS_Store
+
+# Playwright
+/test-results/
+/playwright-report/

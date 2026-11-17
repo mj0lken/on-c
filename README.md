@@ -89,9 +89,14 @@ npm run dev                       # start local web dev server on http://localho
 npm test                          # run Vitest evaluation, archive, naming & export tests
 npm run audit:rust                # audit Rust lockfile against RustSec (cargo-audit)
 npm run build                     # type-check & build static web bundle into dist/
+npm run test:e2e                  # WebKit UI smoke tests (desktop app engine): /help, /char, /units, settings
 ./scripts/build-app.sh            # build & ad-hoc sign build/on-c.app (Apple Silicon)
 ./scripts/build-app.sh --install  # copy build/on-c.app to /Applications and launch it
 ```
+
+Web + desktop: one React app serves both. The desktop app always renders in WebKit (WKWebView),
+so test UI changes in Safari (or `npm run test:e2e`), and scope desktop-only styling under
+`.app-stage.is-tauri` instead of adding engine hacks globally.
 
 Cutting a release (maintainers):
 

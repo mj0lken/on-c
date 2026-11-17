@@ -48,6 +48,11 @@ jobs:
           npm run typecheck
           npm test
 
+      - name: WebKit UI smoke tests (same engine as the desktop app)
+        run: |
+          node ./node_modules/@playwright/test/cli.js install webkit
+          npm run test:e2e
+
       - name: Verify static Pages build & /app SPA routes
         env:
           VITE_BASE_PATH: /on-c/
