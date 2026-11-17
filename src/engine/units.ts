@@ -106,6 +106,28 @@ const UNIT_LIST: UnitDef[] = [
   { id: 'rem', symbol: 'rem', category: 'css', toBase: 16, aliases: ['rem', 'em'] },
 ];
 
+export interface UnitCategoryMeta {
+  id: UnitCategory;
+  label: string;
+  example: string;
+}
+
+/** Display order + labels for the /units reference (colors live in CSS: `.tok-unit-<id>`). */
+export const UNIT_CATEGORIES: UnitCategoryMeta[] = [
+  { id: 'length', label: 'Length', example: '2 ft in m' },
+  { id: 'mass', label: 'Weight', example: '5 lb in kg' },
+  { id: 'volume', label: 'Volume', example: '2 cups in ml' },
+  { id: 'area', label: 'Area', example: '120 m² in sqft' },
+  { id: 'temperature', label: 'Temperature', example: '72 °F in °C' },
+  { id: 'speed', label: 'Speed', example: '100 km/h in mph' },
+  { id: 'time', label: 'Time', example: '90 min in h' },
+  { id: 'data', label: 'Data', example: '1.5 GB in MiB' },
+  { id: 'css', label: 'Screen', example: '24 px in rem' },
+  { id: 'angle', label: 'Angle', example: '90° in rad' },
+];
+
+export const UNIT_LIST_PUBLIC: readonly UnitDef[] = UNIT_LIST;
+
 export const UNITS_BY_ID: Record<string, UnitDef> = {};
 const ALIAS_MAP: Record<string, UnitDef> = {};
 
@@ -151,3 +173,18 @@ export function convertUnitValue(amount: number, fromUnitId: string, toUnitId: s
   const inBase = amount * from.toBase;
   return inBase / to.toBase;
 }
+
+/** Human name = first spelled-out alias (e.g. "millimeter"), falling back to the symbol. */
+export const unitDisplayName = (u: UnitDef): string => {
+  const all = u.aliases.map((a) => a.toLowerCase());
+  const words = all.filter((a) => /^[a-z][a-z ]{2,}$/.test(a));
+  const isPlural = (a: string) =>
+    (a.endsWith('s') && all.includes(a.slice(0, -1))) || (a.endsWith('es') && all.includes(a.slice(0, -2)));
+  const singular = words.filter((a) => !isPlural(a));
+  const best =
+    singular.find((a) => a.length >= 5) ??
+    [...singular].sort((a, b) => b.length - a.length)[0] ??
+    words[0];
+  const name = best ?? u.symbol;
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};

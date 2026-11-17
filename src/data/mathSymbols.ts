@@ -7,14 +7,12 @@ export interface MathSymbolItem {
   keywords: string[];
 }
 
-export const MAX_INLINE_SYMBOLS = 5;
 
 /**
  * Hard-to-type mathematical characters, operators, constants, units, and currencies.
- * The first 5 appear directly in the bottom-left toolbar; the full list is searchable via "More".
+ * Searchable via the /char picker; currencies (keyword `currency`) are grouped under a divider.
  */
 export const MATH_SYMBOLS: MathSymbolItem[] = [
-  // Top 5 inline quick-insert buttons
   {
     id: 'deg',
     glyph: '°',

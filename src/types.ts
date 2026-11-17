@@ -58,6 +58,8 @@ export interface HighlightSpan {
     | 'command'
     | 'text';
   text: string;
+  /** Unit category for `unit` spans (drives per-category coloring). */
+  category?: string;
 }
 
 export interface EvaluatedRow {

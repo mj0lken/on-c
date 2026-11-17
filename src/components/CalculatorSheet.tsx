@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { EvaluatedRow, SheetRow } from '../types';
 import { isBareHeadingPrompt } from '../engine/tabNaming';
-import { isCharCommand, isHelpCommand } from '../engine/tokenizer';
+import { isCharCommand, isHelpCommand, isUnitsCommand } from '../engine/tokenizer';
 
 interface CursorState {
   rowIndex: number;
@@ -40,6 +40,7 @@ interface CalculatorSheetProps {
   onUpdateRows: (newRows: SheetRow[], newNextAutoVarIndex?: number, pushHistory?: boolean) => void;
   onOpenHelp: () => void;
   onOpenCharPicker: () => void;
+  onOpenUnits: () => void;
   onNotify: (message: string) => void;
 }
 
@@ -58,6 +59,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
       onUpdateRows,
       onOpenHelp,
       onOpenCharPicker,
+      onOpenUnits,
       onNotify,
     },
     ref
@@ -164,6 +166,14 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
       return;
     }
 
+    if (isUnitsCommand(newValue)) {
+      cursorRef.current = { rowIndex, start: 0, end: 0 };
+      const cleanedRows = rows.map((r, i) => (i === rowIndex ? { ...r, text: '' } : r));
+      onUpdateRows(cleanedRows, undefined, false);
+      onOpenUnits();
+      return;
+    }
+
     // Immediate `/char` command trigger (both standalone `/char` and inline e.g. `sin 30/char`)
     const caret = inputEl.selectionStart ?? newValue.length;
     const beforeCaret = newValue.slice(0, caret);
@@ -239,6 +249,14 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
         const cleaned = rows.map((r, i) => (i === rowIndex ? { ...r, text: '' } : r));
         onUpdateRows(cleaned, undefined, false);
         onOpenHelp();
+        return;
+      }
+
+      if (isUnitsCommand(currentRow.text)) {
+        cursorRef.current = { rowIndex, start: 0, end: 0 };
+        const cleaned = rows.map((r, i) => (i === rowIndex ? { ...r, text: '' } : r));
+        onUpdateRows(cleaned, undefined, false);
+        onOpenUnits();
         return;
       }
 
@@ -556,7 +574,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
                   {ev && ev.highlights.length > 0 ? (
                     <>
                       {ev.highlights.map((span, sIdx) => (
-                        <span key={sIdx} className={`tok tok-${span.type}`}>
+                        <span key={sIdx} className={`tok tok-${span.type}${span.category ? ` tok-unit-${span.category}` : ''}`}>
                           {span.text}
                         </span>
                       ))}
@@ -573,7 +591,7 @@ export const CalculatorSheet = forwardRef<CalculatorSheetHandle, CalculatorSheet
                       {showTourCaret && <span className="tour-typing-caret" />}
                       <span className="tok-placeholder">
                         {idx === 0 && rows.length === 1 && row.text.length === 0
-                          ? 'Type a calculation, /char, or /help…'
+                          ? 'Type a calculation, /units, /char, or /help…'
                           : '\u200B'}
                       </span>
                     </>

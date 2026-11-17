@@ -54,6 +54,7 @@ import { CalculatorSheet, CalculatorSheetHandle } from './components/CalculatorS
 import { SettingsBack } from './components/SettingsBack';
 import { HelpDialog, HelpDialogHandle } from './components/HelpDialog';
 import { SymbolToolbar, SymbolToolbarHandle } from './components/SymbolToolbar';
+import { UnitsMenu, UnitsMenuHandle } from './components/UnitsMenu';
 import { ExportMenu } from './components/ExportMenu';
 import { useAppUpdater } from './hooks/useAppUpdater';
 
@@ -133,6 +134,7 @@ export const App = forwardRef<AppHandle, AppProps>(
     const tourTargetTabIdRef = useRef<string | null>(null);
     const sheetRef = useRef<CalculatorSheetHandle>(null);
     const symbolToolbarRef = useRef<SymbolToolbarHandle>(null);
+    const unitsMenuRef = useRef<UnitsMenuHandle>(null);
     const helpDialogRef = useRef<HelpDialogHandle>(null);
 
     const showToast = useCallback((msg: string) => {
@@ -464,6 +466,11 @@ export const App = forwardRef<AppHandle, AppProps>(
           });
           return;
         }
+        if (example === '/units') {
+          setIsFlipped(false);
+          requestAnimationFrame(() => unitsMenuRef.current?.open());
+          return;
+        }
         if (example === '/help') {
           setIsFlipped(false);
           setIsTourHelpMode(false);
@@ -766,7 +773,6 @@ export const App = forwardRef<AppHandle, AppProps>(
                 onAddTab={handleAddTab}
                 onCloseTab={handleCloseTab}
                 onRenameTab={handleRenameTab}
-                onOpenHelp={openManualHelp}
                 onFlipToSettings={() => setIsFlipped(true)}
               />
 
@@ -780,6 +786,7 @@ export const App = forwardRef<AppHandle, AppProps>(
                 onUpdateRows={updateActiveTabRows}
                 onOpenHelp={openManualHelp}
                 onOpenCharPicker={() => symbolToolbarRef.current?.openPicker()}
+                onOpenUnits={() => unitsMenuRef.current?.open()}
                 onNotify={showToast}
               />
 
@@ -788,6 +795,21 @@ export const App = forwardRef<AppHandle, AppProps>(
                   ref={symbolToolbarRef}
                   onInsertSymbol={(sym) => sheetRef.current?.insertAtCursor(sym)}
                   onRestoreSheetFocus={() => sheetRef.current?.focusCurrentCursor()}
+                  afterCharSlot={
+                    <>
+                      <UnitsMenu ref={unitsMenuRef} />
+                      <button
+                        type="button"
+                        className="sym-btn sym-more-btn"
+                        data-tour-target="help-btn"
+                        onClick={openManualHelp}
+                        title="Syntax Reference (/help)"
+                        aria-label="/help — Syntax Reference"
+                      >
+                        /help
+                      </button>
+                    </>
+                  }
                 />
 
                 <div className="footer-right">

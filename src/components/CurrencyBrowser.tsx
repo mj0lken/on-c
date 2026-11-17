@@ -134,16 +134,16 @@ export const CurrencyBrowser: React.FC<CurrencyBrowserProps> = ({ id }) => {
               <li key={c.code} className={!query && GROUP_ENDS.has(c.code) ? 'is-group-end' : undefined}>
                 <button
                   type="button"
-                  className="symbol-list-item currency-copy-row"
+                  className="symbol-list-item copy-row"
                   title={`Copy ${c.code}`}
                   aria-label={`${c.name}, copy ticker ${c.code}`}
                   onClick={() => void copyTicker(c.code)}
                 >
                   <span className="symbol-item-glyph">{c.symbol}</span>
                   <span className="symbol-item-name">{c.name}</span>
-                  <span className="symbol-item-example currency-ticker">
+                  <span className="symbol-item-example copy-ticker">
                     {copiedCode === c.code ? 'Copied' : c.code}
-                    <svg className="currency-copy-icon" width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <svg className="copy-icon" width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                       {copiedCode === c.code ? (
                         <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                       ) : (
