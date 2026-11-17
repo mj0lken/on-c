@@ -2497,22 +2497,22 @@ dialog::backdrop {
   box-shadow: 0 5px 0 -4px var(--separator-rule);
 }
 
-.currency-ticker {
+.copy-ticker {
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
-.currency-copy-icon {
+.copy-icon {
   opacity: 0;
   transition: opacity 0.12s;
 }
 
-.currency-copy-row:is(:hover, :focus-visible) .currency-ticker {
+.copy-row:is(:hover, :focus-visible) .copy-ticker {
   color: var(--text-primary);
 }
 
-.currency-copy-row:is(:hover, :focus-visible) .currency-copy-icon {
+.copy-row:is(:hover, :focus-visible) .copy-icon {
   opacity: 1;
 }
 
@@ -2540,7 +2540,6 @@ dialog::backdrop {
 }
 
 .units-list {
-  max-height: 280px;
   margin: 0;
   list-style: none;
 }

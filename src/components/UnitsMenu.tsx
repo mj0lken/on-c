@@ -207,7 +207,7 @@ export const UnitsMenu = forwardRef<UnitsMenuHandle>((_props, ref) => {
                   <li>
                     <button
                       type="button"
-                      className="symbol-list-item currency-copy-row"
+                      className="symbol-list-item copy-row"
                       title={`Copy ${e.symbol}`}
                       onClick={() => void copy(e)}
                     >
@@ -216,9 +216,9 @@ export const UnitsMenu = forwardRef<UnitsMenuHandle>((_props, ref) => {
                         {e.name}
                         {e.aliases && <span className="units-aliases"> · {e.aliases}</span>}
                       </span>
-                      <span className="symbol-item-example currency-ticker">
+                      <span className="symbol-item-example copy-ticker">
                         {copiedKey === e.key ? 'Copied' : CATEGORY_LABEL[e.category]}
-                        <svg className="currency-copy-icon" width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <svg className="copy-icon" width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                           {copiedKey === e.key ? (
                             <path d="M3 8.5l3 3 7-7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
                           ) : (
