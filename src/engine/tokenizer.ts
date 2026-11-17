@@ -97,6 +97,10 @@ export function isHelpCommand(raw: string): boolean {
   return /^\s*\/help\s*$/i.test(raw);
 }
 
+export function isUnitsCommand(raw: string): boolean {
+  return /^\s*\/units\s*$/i.test(raw);
+}
+
 export function isCharCommand(raw: string): boolean {
   return /^\s*\/char\s*$/i.test(raw);
 }
@@ -128,15 +132,16 @@ export function highlightLine(
   }
 
   const spans: HighlightSpan[] = [];
-  const pushSpan = (type: HighlightSpan['type'], text: string) => {
+  const pushSpan = (type: HighlightSpan['type'], text: string, category?: string) => {
     if (!text) return;
     const prev = spans[spans.length - 1];
-    if (prev && prev.type === type) {
+    if (prev && prev.type === type && prev.category === category) {
       prev.text += text;
     } else {
-      spans.push({ type, text });
+      spans.push(category ? { type, text, category } : { type, text });
     }
   };
+  const pushUnit = (text: string) => pushSpan('unit', text, resolveUnit(text)?.category);
 
   // Detect inline comment start `//`
   const commentIdx = line.indexOf('//');
@@ -206,12 +211,12 @@ export function highlightLine(
 
     // Degree + temp symbols °C, °F, °
     if (rest.startsWith('°C') || rest.startsWith('°c') || rest.startsWith('°F') || rest.startsWith('°f')) {
-      pushSpan('unit', rest.slice(0, 2));
+      pushUnit(rest.slice(0, 2));
       i += 2;
       continue;
     }
     if (ch === '°') {
-      pushSpan('unit', '°');
+      pushUnit('°');
       i += 1;
       continue;
     }
@@ -254,7 +259,7 @@ export function highlightLine(
     // Identifiers / words (including π, τ, φ, m², km/h)
     const speedMatch = /^(?:km\/h|m\/s)\b/i.exec(rest);
     if (speedMatch) {
-      pushSpan('unit', speedMatch[0]);
+      pushUnit(speedMatch[0]);
       i += speedMatch[0].length;
       continue;
     }
@@ -262,7 +267,7 @@ export function highlightLine(
     // Area superscript units (mm², cm², m², km²) before general identifiers
     const areaSuperMatch = /^(?:mm|cm|m|km)²/i.exec(rest);
     if (areaSuperMatch) {
-      pushSpan('unit', areaSuperMatch[0]);
+      pushUnit(areaSuperMatch[0]);
       i += areaSuperMatch[0].length;
       continue;
     }
@@ -289,7 +294,7 @@ export function highlightLine(
       } else if (KEYWORD_WORDS.has(lower)) {
         pushSpan('keyword', word);
       } else if (resolveUnit(word)) {
-        pushSpan('unit', word);
+        pushUnit(word);
       } else {
         pushSpan('text', word);
       }
@@ -299,7 +304,7 @@ export function highlightLine(
 
     // Quotes used as ft/in units after numbers
     if (ch === '"' || ch === "'") {
-      pushSpan('unit', ch);
+      pushUnit(ch);
       i += 1;
       continue;
     }

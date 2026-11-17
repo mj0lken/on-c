@@ -1083,6 +1083,31 @@ progress.loading-spinner:indeterminate {
 .tok-currency {
   color: var(--tok-curr);
 }
+
+/*
+ * Per-category unit colors (sheet tokens, /units chips & glyphs).
+ * `light-dark()` follows the scoped calculator `color-scheme`. Currencies are golden.
+ */
+.tok-unit-currency,
+.tok-currency {
+  --unit-hue: light-dark(#9a6b00, #e8b949);
+}
+.tok-unit-length { --unit-hue: light-dark(#0b6bb8, #6cc4f5); }
+.tok-unit-mass { --unit-hue: light-dark(#b4500f, #f29a5c); }
+.tok-unit-volume { --unit-hue: light-dark(#0b7d82, #5fd6d6); }
+.tok-unit-area { --unit-hue: light-dark(#6a3fc4, #b39af5); }
+.tok-unit-temperature { --unit-hue: light-dark(#c42a2a, #ff8a80); }
+.tok-unit-speed { --unit-hue: light-dark(#b8337a, #f58cc4); }
+.tok-unit-time { --unit-hue: light-dark(#3a4bb0, #94a3ff); }
+.tok-unit-data { --unit-hue: light-dark(#4f7a0f, #b9e07a); }
+.tok-unit-css { --unit-hue: light-dark(#8a3f9e, #dba4ec); }
+.tok-unit-angle { --unit-hue: light-dark(#14805a, #74dcb0); }
+.tok-unit-bases { --unit-hue: light-dark(#5b6472, #b8c0cc); }
+
+.tok[class*='tok-unit-'],
+.tok-currency {
+  color: var(--unit-hue);
+}
 .tok-ans {
   color: var(--tok-ans);
 }
@@ -2508,4 +2533,52 @@ dialog::backdrop {
 
 .currency-copy-row:is(:hover, :focus-visible) .currency-copy-icon {
   opacity: 1;
+}
+
+/* /units reference menu (reuses /char popover + /help topic chips) */
+[popover].units-menu-popover {
+  width: min(92vw, 340px);
+  max-height: min(380px, 75vh);
+}
+
+.units-chip[aria-pressed='true'] {
+  color: var(--unit-hue);
+  background: color-mix(in srgb, var(--unit-hue) 16%, transparent);
+}
+
+.units-hint {
+  padding: 5px 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--separator-rule);
+}
+
+.units-hint code {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.units-list {
+  max-height: 280px;
+  margin: 0;
+  list-style: none;
+}
+
+.units-group-label {
+  padding: 8px 7px 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--unit-hue);
+}
+
+.units-glyph {
+  color: var(--unit-hue);
+  background: color-mix(in srgb, var(--unit-hue) 14%, transparent);
+}
+
+.units-aliases {
+  color: var(--text-muted);
+  font-size: 11px;
 }

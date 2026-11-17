@@ -106,6 +106,28 @@ const UNIT_LIST: UnitDef[] = [
   { id: 'rem', symbol: 'rem', category: 'css', toBase: 16, aliases: ['rem', 'em'] },
 ];
 
+export interface UnitCategoryMeta {
+  id: UnitCategory;
+  label: string;
+  example: string;
+}
+
+/** Display order + labels for the /units reference (colors live in CSS: `.tok-unit-<id>`). */
+export const UNIT_CATEGORIES: UnitCategoryMeta[] = [
+  { id: 'length', label: 'Length', example: '2 ft in m' },
+  { id: 'mass', label: 'Weight', example: '5 lb in kg' },
+  { id: 'volume', label: 'Volume', example: '2 cups in ml' },
+  { id: 'area', label: 'Area', example: '120 m² in sqft' },
+  { id: 'temperature', label: 'Temperature', example: '72 °F in °C' },
+  { id: 'speed', label: 'Speed', example: '100 km/h in mph' },
+  { id: 'time', label: 'Time', example: '90 min in h' },
+  { id: 'data', label: 'Data', example: '1.5 GB in MiB' },
+  { id: 'css', label: 'Screen', example: '24 px in rem' },
+  { id: 'angle', label: 'Angle', example: '90° in rad' },
+];
+
+export const UNIT_LIST_PUBLIC: readonly UnitDef[] = UNIT_LIST;
+
 export const UNITS_BY_ID: Record<string, UnitDef> = {};
 const ALIAS_MAP: Record<string, UnitDef> = {};
 

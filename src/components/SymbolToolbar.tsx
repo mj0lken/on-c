@@ -19,10 +19,12 @@ export interface SymbolToolbarHandle {
 interface SymbolToolbarProps {
   onInsertSymbol: (symbol: string) => void;
   onRestoreSheetFocus?: () => void;
+  /** Rendered right after the /char button (e.g. the /units menu). */
+  afterCharSlot?: React.ReactNode;
 }
 
 export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>(
-  ({ onInsertSymbol, onRestoreSheetFocus }, ref) => {
+  ({ onInsertSymbol, onRestoreSheetFocus, afterCharSlot }, ref) => {
     const uid = useId().replace(/:/g, '');
     const popoverId = `more-symbols-${uid}`;
     const toolbarRef = useRef<HTMLDivElement>(null);
@@ -199,6 +201,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
               >
                 /char
               </button>
+              {afterCharSlot}
               <span
                 className="sym-toolbar-sep"
                 role="separator"
