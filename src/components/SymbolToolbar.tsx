@@ -52,6 +52,8 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
       });
     }, [query]);
 
+    const firstCurrencyIndex = filteredSymbols.findIndex((s) => s.keywords.includes('currency'));
+
     useImperativeHandle(
       ref,
       () => ({
@@ -285,7 +287,9 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                       itemRefs.current[index] = el;
                     }}
                     type="button"
-                    className="symbol-list-item"
+                    className={`symbol-list-item${
+                      !query && index === firstCurrencyIndex ? ' is-group-start' : ''
+                    }`}
                     data-tour-target={`char-item-${item.id}`}
                     onClick={() => handlePickSymbol(item)}
                     onKeyDown={(e) => {

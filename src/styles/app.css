@@ -2558,3 +2558,29 @@ dialog::backdrop {
   color: var(--text-muted);
   font-size: 11px;
 }
+
+/* /char: divider above the currency group */
+.symbol-list-item.is-group-start {
+  margin-top: 5px;
+  position: relative;
+}
+
+.symbol-list-item.is-group-start::before {
+  content: '';
+  position: absolute;
+  inset: -3px 7px auto;
+  border-top: 1px solid var(--separator-rule);
+}
+
+/* /char and /units cover as much of the viewport as the /help dialog */
+[popover]:is(.symbol-more-popover, .units-menu-popover):not(.currency-browser-popover) {
+  width: min(92vw, 460px);
+  height: min(80vh, 490px);
+  max-height: min(80vh, 490px);
+}
+
+[popover]:is(.symbol-more-popover, .units-menu-popover):not(.currency-browser-popover) .symbol-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
