@@ -3,7 +3,7 @@ import { getInitialRates } from './currencies';
 import { evaluateSheet } from './evaluator';
 import { DEFAULT_SETTINGS } from './storage';
 import { highlightLine } from './tokenizer';
-import { UNIT_CATEGORIES, UNIT_LIST_PUBLIC } from './units';
+import { UNIT_CATEGORIES, UNIT_LIST_PUBLIC, UNITS_BY_ID, unitDisplayName } from './units';
 
 describe('/units reference', () => {
   it('every category example converts to a value', () => {
@@ -24,5 +24,10 @@ describe('/units reference', () => {
     const spans = highlightLine('2 ft in m', new Set());
     const units = spans.filter((s) => s.type === 'unit');
     expect(units.map((s) => s.category)).toEqual(['length', 'length']);
+  });
+
+  it('shows readable singular unit names', () => {
+    const names = ['s', 'min', 'h', 'day', 'kg', 'in', 'ft', 'C'].map((id) => unitDisplayName(UNITS_BY_ID[id]));
+    expect(names).toEqual(['Second', 'Minute', 'Hour', 'Day', 'Kilogram', 'Inch', 'Foot', 'Celsius']);
   });
 });

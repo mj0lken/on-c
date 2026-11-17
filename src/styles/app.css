@@ -395,7 +395,12 @@ html:has(.app-stage.is-tauri) #root {
 }
 
 .app-stage.is-tauri {
-  padding: 12px;
+  /* The window IS the card: no transparent margin, native macOS shadow (tauri.conf `shadow: true`). */
+  padding: 0;
+}
+
+.app-stage.is-tauri .calc-face {
+  box-shadow: none;
 }
 
 .app-stage.is-embedded-site {
@@ -2572,11 +2577,17 @@ dialog::backdrop {
   border-top: 1px solid var(--separator-rule);
 }
 
-/* /char and /units cover as much of the viewport as the /help dialog */
+/* /char and /units open exactly like the /help dialog: same size, centered in the viewport */
 [popover]:is(.symbol-more-popover, .units-menu-popover):not(.currency-browser-popover) {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  position-area: none;
+  position-try-fallbacks: none;
   width: min(92vw, 460px);
   height: min(80vh, 490px);
   max-height: min(80vh, 490px);
+  border-radius: 11px;
 }
 
 [popover]:is(.symbol-more-popover, .units-menu-popover):not(.currency-browser-popover) .symbol-list {

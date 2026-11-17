@@ -133,17 +133,6 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
         if (openNow) {
           pickedSymbolRef.current = false;
           setQuery('');
-          if (!CSS.supports('position-area', 'block-start')) {
-            const t = moreBtn.getBoundingClientRect();
-            const m = pop.getBoundingClientRect();
-            const fitsAbove = t.top - m.height - 6 >= 8;
-            pop.style.top = `${
-              fitsAbove
-                ? t.top - m.height - 6
-                : Math.min(window.innerHeight - m.height - 8, t.bottom + 6)
-            }px`;
-            pop.style.left = `${Math.max(10, Math.min(t.left, window.innerWidth - m.width - 10))}px`;
-          }
           const skipFocus = suppressAutoFocusRef.current;
           suppressAutoFocusRef.current = false;
           if (!skipFocus) {

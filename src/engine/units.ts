@@ -173,3 +173,18 @@ export function convertUnitValue(amount: number, fromUnitId: string, toUnitId: s
   const inBase = amount * from.toBase;
   return inBase / to.toBase;
 }
+
+/** Human name = first spelled-out alias (e.g. "millimeter"), falling back to the symbol. */
+export const unitDisplayName = (u: UnitDef): string => {
+  const all = u.aliases.map((a) => a.toLowerCase());
+  const words = all.filter((a) => /^[a-z][a-z ]{2,}$/.test(a));
+  const isPlural = (a: string) =>
+    (a.endsWith('s') && all.includes(a.slice(0, -1))) || (a.endsWith('es') && all.includes(a.slice(0, -2)));
+  const singular = words.filter((a) => !isPlural(a));
+  const best =
+    singular.find((a) => a.length >= 5) ??
+    [...singular].sort((a, b) => b.length - a.length)[0] ??
+    words[0];
+  const name = best ?? u.symbol;
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};

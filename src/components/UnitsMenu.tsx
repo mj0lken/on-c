@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { UNIT_CATEGORIES, UNIT_LIST_PUBLIC, UnitDef } from '../engine/units';
+import { UNIT_CATEGORIES, UNIT_LIST_PUBLIC, unitDisplayName } from '../engine/units';
 import { CURRENCIES } from '../engine/currencies';
 import { useToolbarFocusFallback } from '../hooks/useToolbarFocusFallback';
 
@@ -21,10 +21,6 @@ const CATEGORIES: Array<{ id: CategoryId; label: string; example: string }> = [
 
 const CATEGORY_LABEL = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label])) as Record<CategoryId, string>;
 
-const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** Human name = first spelled-out alias (e.g. "millimeter"), falling back to the symbol. */
-const unitName = (u: UnitDef) => titleCase(u.aliases.find((a) => /^[a-z][a-z ]{3,}$/i.test(a)) ?? u.symbol);
 
 const BASE_ENTRIES: UnitEntry[] = [
   { key: 'hex', symbol: 'hex', name: 'Hexadecimal', aliases: '0xFF · in hex', category: 'bases' },
@@ -37,7 +33,7 @@ const buildEntries = (): UnitEntry[] => [
     UNIT_LIST_PUBLIC.filter((u) => u.category === cat.id).map((u) => ({
       key: `${cat.id}-${u.id}`,
       symbol: u.symbol,
-      name: unitName(u),
+      name: unitDisplayName(u),
       aliases: [...new Set(u.aliases.filter((a) => a !== u.symbol && a.length <= 12))].slice(0, 4).join(', '),
       category: cat.id as CategoryId,
     }))
@@ -109,12 +105,6 @@ export const UnitsMenu = forwardRef<UnitsMenuHandle>((_props, ref) => {
       if ((ev as ToggleEvent).newState !== 'open') return;
       setQuery('');
       setOpenCount((n) => n + 1);
-      if (!CSS.supports('position-area', 'block-start')) {
-        const t = btn.getBoundingClientRect();
-        const m = pop.getBoundingClientRect();
-        pop.style.top = `${Math.max(8, t.top - m.height - 6)}px`;
-        pop.style.left = `${Math.max(10, Math.min(t.left, window.innerWidth - m.width - 10))}px`;
-      }
       requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
     };
     pop.addEventListener('toggle', onToggle);
