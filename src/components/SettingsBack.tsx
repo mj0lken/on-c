@@ -8,7 +8,8 @@ import {
   ThemePreference,
   ThousandsSeparator,
 } from '../types';
-import { CURRENCIES, ExchangeRatesState } from '../engine/currencies';
+import { ExchangeRatesState } from '../engine/currencies';
+import { CurrencyBrowser } from './CurrencyBrowser';
 import { getArchiveStatusInfo } from '../engine/archive';
 import { UpdateCheckResult } from '../hooks/useAppUpdater';
 
@@ -34,20 +35,6 @@ interface SettingsBackProps {
   onFlipBack: () => void;
 }
 
-const PRIMARY_CURRENCIES = [
-  'USD',
-  'EUR',
-  'GBP',
-  'SEK',
-  'NOK',
-  'DKK',
-  'CHF',
-  'JPY',
-  'CAD',
-  'AUD',
-  'CNY',
-  'INR',
-];
 
 export const SettingsBack: React.FC<SettingsBackProps> = ({
   settings,
@@ -176,7 +163,7 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
         {/* 3. Default Currency & FX */}
         <section className="setting-row">
           <div className="setting-info">
-            <label htmlFor="default-currency-select" className="setting-label">
+            <label htmlFor="currency-browser" className="setting-label">
               Currency
             </label>
             <span className="setting-desc">
@@ -188,21 +175,7 @@ export const SettingsBack: React.FC<SettingsBackProps> = ({
             </span>
           </div>
           <div className="setting-inline-controls">
-            <select
-              id="default-currency-select"
-              className="setting-select"
-              value={settings.defaultCurrency}
-              onChange={(e) => onUpdateSettings({ defaultCurrency: e.target.value })}
-            >
-              {PRIMARY_CURRENCIES.map((code) => {
-                const info = CURRENCIES[code];
-                return (
-                  <option key={code} value={code}>
-                    {code} ({info.symbol})
-                  </option>
-                );
-              })}
-            </select>
+            <CurrencyBrowser id="currency-browser" />
             <button
               type="button"
               className="secondary-btn"
