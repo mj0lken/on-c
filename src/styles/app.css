@@ -574,17 +574,6 @@ html:has(.app-stage.is-tauri) #root {
   background: var(--bg-hover);
 }
 
-.help-cmd-btn {
-  width: auto;
-  min-inline-size: 24px;
-  min-block-size: 26px;
-  padding: 0 6px;
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
 /* Boxless glowing, pulsing `!` self-update glyph left of `+` */
 .update-alert-btn {
   position: relative;
@@ -1306,19 +1295,6 @@ progress.loading-spinner:indeterminate {
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-}
-
-.symbol-inline-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.sym-toolbar-sep {
-  display: inline-block;
-  block-size: 13px;
-  margin-inline: 2px;
-  border-inline-start: 1px solid var(--separator-rule);
 }
 
 .sym-btn {

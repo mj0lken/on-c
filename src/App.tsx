@@ -773,7 +773,6 @@ export const App = forwardRef<AppHandle, AppProps>(
                 onAddTab={handleAddTab}
                 onCloseTab={handleCloseTab}
                 onRenameTab={handleRenameTab}
-                onOpenHelp={openManualHelp}
                 onFlipToSettings={() => setIsFlipped(true)}
               />
 
@@ -796,7 +795,21 @@ export const App = forwardRef<AppHandle, AppProps>(
                   ref={symbolToolbarRef}
                   onInsertSymbol={(sym) => sheetRef.current?.insertAtCursor(sym)}
                   onRestoreSheetFocus={() => sheetRef.current?.focusCurrentCursor()}
-                  afterCharSlot={<UnitsMenu ref={unitsMenuRef} />}
+                  afterCharSlot={
+                    <>
+                      <UnitsMenu ref={unitsMenuRef} />
+                      <button
+                        type="button"
+                        className="sym-btn sym-more-btn"
+                        data-tour-target="help-btn"
+                        onClick={openManualHelp}
+                        title="Syntax Reference (/help)"
+                        aria-label="/help — Syntax Reference"
+                      >
+                        /help
+                      </button>
+                    </>
+                  }
                 />
 
                 <div className="footer-right">

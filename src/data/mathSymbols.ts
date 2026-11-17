@@ -7,7 +7,6 @@ export interface MathSymbolItem {
   keywords: string[];
 }
 
-export const MAX_INLINE_SYMBOLS = 5;
 
 /**
  * Hard-to-type mathematical characters, operators, constants, units, and currencies.

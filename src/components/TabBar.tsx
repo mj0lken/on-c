@@ -13,7 +13,6 @@ interface TabBarProps {
   onAddTab: () => void;
   onCloseTab: (tabId: string) => void;
   onRenameTab: (tabId: string, newTitle: string) => void;
-  onOpenHelp: () => void;
   onFlipToSettings: () => void;
 }
 
@@ -29,7 +28,6 @@ export const TabBar: React.FC<TabBarProps> = ({
   onAddTab,
   onCloseTab,
   onRenameTab,
-  onOpenHelp,
   onFlipToSettings,
 }) => {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -235,17 +233,6 @@ export const TabBar: React.FC<TabBarProps> = ({
                 strokeLinecap="round"
               />
             </svg>
-          </button>
-
-          <button
-            type="button"
-            className="icon-btn help-cmd-btn"
-            data-tour-target="help-btn"
-            onClick={onOpenHelp}
-            title="Syntax Reference (/help)"
-            aria-label="/help — Syntax Reference"
-          >
-            /help
           </button>
 
           <button

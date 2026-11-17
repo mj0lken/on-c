@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { MATH_SYMBOLS, MAX_INLINE_SYMBOLS, MathSymbolItem } from '../data/mathSymbols';
+import { MATH_SYMBOLS, MathSymbolItem } from '../data/mathSymbols';
 import { useToolbarFocusFallback } from '../hooks/useToolbarFocusFallback';
 
 export interface SymbolToolbarHandle {
@@ -19,7 +19,7 @@ export interface SymbolToolbarHandle {
 interface SymbolToolbarProps {
   onInsertSymbol: (symbol: string) => void;
   onRestoreSheetFocus?: () => void;
-  /** Rendered right after the /char button (e.g. the /units menu). */
+  /** Rendered right after the /char button (e.g. /units and /help). */
   afterCharSlot?: React.ReactNode;
 }
 
@@ -39,8 +39,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
 
-    const inlineSymbols = MATH_SYMBOLS.slice(0, MAX_INLINE_SYMBOLS);
-    const hasMore = MATH_SYMBOLS.length > MAX_INLINE_SYMBOLS;
+    const hasMore = MATH_SYMBOLS.length > 0;
 
     const filteredSymbols = useMemo(() => {
       const q = query.trim().toLowerCase();
@@ -184,7 +183,7 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
           ref={toolbarRef}
           className="symbol-toolbar"
           role="toolbar"
-          aria-label="Quick math symbols"
+          aria-label="Commands"
           {...({ focusgroup: 'toolbar wrap' } as React.HTMLAttributes<HTMLDivElement>)}
         >
           {hasMore && (
@@ -202,31 +201,9 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
                 /char
               </button>
               {afterCharSlot}
-              <span
-                className="sym-toolbar-sep"
-                role="separator"
-                aria-orientation="vertical"
-              />
             </>
           )}
 
-          <div className="symbol-inline-group" role="group" aria-label="Popular math characters">
-            {inlineSymbols.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="sym-btn"
-                title={`${item.name} (${item.example})`}
-                aria-label={`${item.glyph} — Insert ${item.name}`}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                }}
-                onClick={() => onInsertSymbol(item.insert)}
-              >
-                {item.glyph}
-              </button>
-            ))}
-          </div>
         </div>
 
         {hasMore && (
