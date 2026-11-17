@@ -151,7 +151,11 @@ export function resolveCurrency(token: string, defaultCurrency = 'USD'): string 
     return SYMBOL_TO_CURRENCY[token];
   }
   const upper = token.toUpperCase();
-  if (CURRENCIES[upper]) return upper;
+  if (CURRENCIES[upper]) {
+    // Auto-registered ISO codes (e.g. ALL, TOP, CUP) collide with words, so require exact uppercase.
+    if (DYNAMIC_CODES.has(upper) && token !== upper) return null;
+    return upper;
+  }
   const lower = token.toLowerCase();
   if (lower === 'kr') {
     if (['SEK', 'NOK', 'DKK', 'ISK'].includes(defaultCurrency)) {
@@ -162,13 +166,58 @@ export function resolveCurrency(token: string, defaultCurrency = 'USD'): string 
   return WORD_ALIASES[lower] ?? null;
 }
 
+/** ISO codes added at runtime from the FX feed (not in the curated CURRENCIES table). */
+const DYNAMIC_CODES = new Set<string>();
+
+/** Adds every ISO code returned by the FX feed so all currencies are usable. */
+export function registerCurrencies(codes: Iterable<string>): void {
+  let names: Intl.DisplayNames | null = null;
+  try {
+    names = new Intl.DisplayNames(['en'], { type: 'currency' });
+  } catch {
+    names = null;
+  }
+  for (const code of codes) {
+    if (!/^[A-Z]{3}$/.test(code) || CURRENCIES[code]) continue;
+    let symbol = code;
+    let decimals = 2;
+    try {
+      const nf = new Intl.NumberFormat('en', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' });
+      const part = nf.formatToParts(1).find((p) => p.type === 'currency')?.value;
+      if (part && !/^[A-Z]{3}$/.test(part) && !SYMBOL_TO_CURRENCY[part]) symbol = part;
+      decimals = nf.resolvedOptions().maximumFractionDigits ?? 2;
+    } catch {
+      // Unknown to Intl: keep code as symbol
+    }
+    const name = names?.of(code);
+    CURRENCIES[code] = {
+      code,
+      symbol,
+      symbolPosition: symbol === code ? 'code' : 'prefix',
+      name: name && name !== code ? name : code,
+      decimals,
+      fallbackPerUsd: 1,
+    };
+    DYNAMIC_CODES.add(code);
+  }
+}
+
 export interface ExchangeRatesState {
   rates: Record<string, number>;
   updatedAt: string | null;
   source: 'live' | 'cached' | 'offline';
+  /** When the provider publishes its next daily update (+1h buffer). */
+  nextUpdateAt?: string | null;
 }
 
-const FX_STORAGE_KEY = 'onc-fx-rates-v1';
+const FX_STORAGE_KEY = 'onc-fx-rates-v2';
+const FIAT_URL = 'https://open.er-api.com/v6/latest/USD';
+const CRYPTO_URL = 'https://api.coinbase.com/v2/exchange-rates?currency=USD';
+const CRYPTO_CODES = ['BTC', 'ETH', 'SOL'];
+/** Never hit the providers more than once per 12h. */
+export const FX_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 
 export function getInitialRates(): ExchangeRatesState {
   const base: Record<string, number> = {};
@@ -178,11 +227,17 @@ export function getInitialRates(): ExchangeRatesState {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(FX_STORAGE_KEY) : null;
     if (raw) {
-      const parsed = JSON.parse(raw) as { rates: Record<string, number>; updatedAt: string };
+      const parsed = JSON.parse(raw) as {
+        rates: Record<string, number>;
+        updatedAt: string;
+        nextUpdateAt?: string | null;
+      };
       if (parsed && parsed.rates && typeof parsed.rates.EUR === 'number') {
+        registerCurrencies(Object.keys(parsed.rates));
         return {
           rates: { ...base, ...parsed.rates },
           updatedAt: parsed.updatedAt,
+          nextUpdateAt: parsed.nextUpdateAt ?? null,
           source: 'cached',
         };
       }
@@ -190,35 +245,72 @@ export function getInitialRates(): ExchangeRatesState {
   } catch {
     // Ignore storage errors
   }
-  return { rates: base, updatedAt: null, source: 'offline' };
+  return { rates: base, updatedAt: null, nextUpdateAt: null, source: 'offline' };
+}
+
+/** True if we fetched less than 12h ago (manual sync is then answered from cache). */
+export function isWithinMinInterval(state: ExchangeRatesState, now = Date.now()): boolean {
+  if (!state.updatedAt) return false;
+  return now - new Date(state.updatedAt).getTime() < FX_MIN_INTERVAL_MS;
+}
+
+/**
+ * Auto-sync rule: once a day, the hour after the provider's daily publish
+ * (open.er-api.com publishes ~00:00–00:20 UTC and tells us `time_next_update_utc`),
+ * and never more often than every 12h.
+ */
+export function isAutoSyncDue(state: ExchangeRatesState, now = Date.now()): boolean {
+  if (!state.updatedAt) return true;
+  if (isWithinMinInterval(state, now)) return false;
+  const next = state.nextUpdateAt
+    ? new Date(state.nextUpdateAt).getTime()
+    : new Date(state.updatedAt).getTime() + ONE_DAY_MS;
+  return now >= next;
+}
+
+async function fetchCryptoRates(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch(CRYPTO_URL);
+    if (!res.ok) return {};
+    const data = (await res.json()) as { data?: { rates?: Record<string, string> } };
+    const out: Record<string, number> = {};
+    for (const code of CRYPTO_CODES) {
+      const v = Number(data.data?.rates?.[code]);
+      if (Number.isFinite(v) && v > 0) out[code] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 export async function fetchLiveExchangeRates(): Promise<ExchangeRatesState | null> {
   try {
-    const response = await fetch('https://open.er-api.com/v6/latest/USD');
+    const [response, crypto] = await Promise.all([fetch(FIAT_URL), fetchCryptoRates()]);
     if (!response.ok) return null;
     const data = (await response.json()) as {
       result?: string;
       rates?: Record<string, number>;
-      time_last_update_utc?: string;
+      time_next_update_unix?: number;
     };
     if (!data.rates || typeof data.rates.EUR !== 'number') return null;
 
+    registerCurrencies(Object.keys(data.rates));
     const merged: Record<string, number> = {};
     for (const [code, info] of Object.entries(CURRENCIES)) {
-      merged[code] = data.rates[code] ?? info.fallbackPerUsd;
+      merged[code] = crypto[code] ?? data.rates[code] ?? info.fallbackPerUsd;
     }
-    const updatedAt = new Date().toISOString();
+    const now = Date.now();
+    const updatedAt = new Date(now).toISOString();
+    const nextUpdateAt = new Date(
+      data.time_next_update_unix ? data.time_next_update_unix * 1000 + ONE_HOUR_MS : now + ONE_DAY_MS
+    ).toISOString();
     try {
-      localStorage.setItem(FX_STORAGE_KEY, JSON.stringify({ rates: merged, updatedAt }));
+      localStorage.setItem(FX_STORAGE_KEY, JSON.stringify({ rates: merged, updatedAt, nextUpdateAt }));
     } catch {
       // Ignore storage quota errors
     }
-    return {
-      rates: merged,
-      updatedAt,
-      source: 'live',
-    };
+    return { rates: merged, updatedAt, nextUpdateAt, source: 'live' };
   } catch {
     return null;
   }

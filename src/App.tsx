@@ -18,6 +18,8 @@ import {
 import {
   ExchangeRatesState,
   fetchLiveExchangeRates,
+  isAutoSyncDue,
+  isWithinMinInterval,
   getInitialRates,
 } from './engine/currencies';
 import {
@@ -199,23 +201,36 @@ export const App = forwardRef<AppHandle, AppProps>(
       return () => window.clearInterval(timer);
     }, [settings.archiveRetentionDays]);
 
+    const fxStateRef = useRef(fxState);
+    fxStateRef.current = fxState;
+
     const handleRefreshRates = useCallback(
       async (notifyUser = false) => {
+        const current = fxStateRef.current;
+        // Manual sync: don't hit the providers more than once per 12h — rates only change daily.
+        if (notifyUser && isWithinMinInterval(current)) {
+          showToast('FX rates are up to date');
+          return;
+        }
+        if (!notifyUser && !isAutoSyncDue(current)) return;
         setIsRefreshingFx(true);
         const updated = await fetchLiveExchangeRates();
         setIsRefreshingFx(false);
         if (updated) {
           setFxState(updated);
-          if (notifyUser) showToast('Updated live FX rates');
+          if (notifyUser) showToast('FX rates are up to date');
         } else if (notifyUser) {
-          showToast('Using cached / offline FX rates');
+          showToast('Offline — using cached FX rates');
         }
       },
       [showToast]
     );
 
+    // Auto-sync on load, then check hourly (cheap local check; only fetches when due).
     useEffect(() => {
       void handleRefreshRates(false);
+      const timer = window.setInterval(() => void handleRefreshRates(false), 60 * 60 * 1000);
+      return () => window.clearInterval(timer);
     }, [handleRefreshRates]);
 
     const activeTab = useMemo(
@@ -705,6 +720,11 @@ export const App = forwardRef<AppHandle, AppProps>(
       [onCalcThemeChange]
     );
 
+    const closeHelp = useCallback(() => {
+      setIsHelpOpen(false);
+      setIsTourHelpMode(false);
+    }, []);
+
     const openManualHelp = useCallback(() => {
       setIsTourHelpMode(false);
       setIsHelpOpen(true);
@@ -835,17 +855,31 @@ export const App = forwardRef<AppHandle, AppProps>(
             />
           )}
 
-          <HelpDialog
+          {/* Inline tour demo stays inside the card (positioned against .calc-perspective). */}
+          {isTourHelpMode && (
+            <HelpDialog
+            key="inline"
             ref={helpDialogRef}
             isOpen={isHelpOpen}
-            nonModalDemo={isTourHelpMode}
-            onClose={() => {
-              setIsHelpOpen(false);
-              setIsTourHelpMode(false);
-            }}
+            nonModalDemo={true}
+            onClose={closeHelp}
             onInsertExample={handleInsertExample}
           />
+          )}
         </div>
+
+        {/* Manual modal help lives OUTSIDE .calc-perspective: WebKit (Tauri) fails to paint
+            top-layer <dialog> content inside a `perspective` 3D context (only ::backdrop shows). */}
+        {!isTourHelpMode && (
+          <HelpDialog
+            key="modal"
+            ref={helpDialogRef}
+            isOpen={isHelpOpen}
+            nonModalDemo={false}
+            onClose={closeHelp}
+            onInsertExample={handleInsertExample}
+          />
+        )}
       </div>
     );
   }

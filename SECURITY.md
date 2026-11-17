@@ -19,7 +19,7 @@ on `main` get fixes.
 `on/c` evaluates expressions with a hand-written recursive-descent parser (never `eval()` or
 `new Function()`), stores sheets and preferences locally in `localStorage`, and on macOS enforces a
 strict WebView Content Security Policy (`object-src 'none'`, `base-uri 'none'`,
-`frame-ancestors 'none'`, and outbound `connect-src` restricted solely to `https://open.er-api.com`
+`frame-ancestors 'none'`, and outbound `connect-src` restricted solely to `https://open.er-api.com` (fiat FX) and `https://api.coinbase.com` (BTC/ETH/SOL)
 for anonymous public FX rates) alongside a single Tauri IPC command (`save_export_file`) scoped to
 writing `.md`, `.csv`, or `.txt` files inside `~/Downloads` with path-traversal and dotfile
 sanitization.

@@ -1466,7 +1466,9 @@ progress.loading-spinner:indeterminate {
 }
 
 .symbol-list {
-  flex: 1;
+  /* Size to content: `flex: 1` (basis 0) inside an auto-height popover collapses to 0 in WebKit. */
+  flex: 0 1 auto;
+  min-height: 120px;
   overflow-y: auto;
   scrollbar-width: thin;
   max-height: 235px;
@@ -2029,8 +2031,7 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
-  background-color: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(2px);
+  background-color: transparent;
 }
 
 .help-dialog {
@@ -2047,6 +2048,17 @@ dialog::backdrop {
 .help-dialog[open] {
   display: flex;
   flex-direction: column;
+}
+
+/* Definite height for the modal: with `height: auto`, WebKit collapses the flex column
+   (inner uses height: 100% + overflow: hidden) to a single line. */
+.help-dialog:not(.is-inline-demo)[open] {
+  height: min(80vh, 490px);
+}
+
+.help-dialog:not(.is-inline-demo) .help-dialog-inner {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .calc-inline-scrim {
@@ -2446,4 +2458,54 @@ dialog::backdrop {
   color: var(--text-primary) !important;
   scale: 0.94;
   transition: scale 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+/* Settings → Currency: browse-only list (reuses the /char picker popover styles) */
+.currency-browser-btn {
+  text-align: left;
+  white-space: nowrap;
+}
+
+[popover].currency-browser-popover {
+  max-height: min(320px, 70vh);
+}
+
+@supports (position-area: block-start) {
+  [popover].currency-browser-popover {
+    position-area: block-end span-inline-start;
+  }
+}
+
+.currency-browser-popover .symbol-list {
+  max-height: 270px;
+  margin: 0;
+  list-style: none;
+}
+
+.currency-browser-popover .symbol-list:focus-visible {
+  outline: none;
+}
+
+.currency-browser-popover li.is-group-end {
+  margin-bottom: 4px;
+  box-shadow: 0 5px 0 -4px var(--separator-rule);
+}
+
+.currency-ticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.currency-copy-icon {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.currency-copy-row:is(:hover, :focus-visible) .currency-ticker {
+  color: var(--text-primary);
+}
+
+.currency-copy-row:is(:hover, :focus-visible) .currency-copy-icon {
+  opacity: 1;
 }
