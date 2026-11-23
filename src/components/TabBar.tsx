@@ -185,13 +185,14 @@ export const TabBar: React.FC<TabBarProps> = ({
                     fill="none"
                     aria-hidden="true"
                   >
+                    <circle cx="8" cy="8" r="6.1" stroke="currentColor" strokeWidth="1.9" />
                     <path
-                      d="M8 2.9v6.1"
+                      d="M8 10.9V5.3M5.6 7.6L8 5.15 10.4 7.6"
                       stroke="currentColor"
-                      strokeWidth="2.6"
+                      strokeWidth="1.95"
                       strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <circle cx="8" cy="12.45" r="1.5" fill="currentColor" />
                   </svg>
                   <svg
                     className="update-alert-icon"
@@ -201,13 +202,14 @@ export const TabBar: React.FC<TabBarProps> = ({
                     fill="none"
                     aria-hidden="true"
                   >
+                    <circle cx="8" cy="8" r="6.1" stroke="currentColor" strokeWidth="1.5" />
                     <path
-                      d="M8 2.9v6.1"
+                      d="M8 10.9V5.3M5.6 7.6L8 5.15 10.4 7.6"
                       stroke="currentColor"
-                      strokeWidth="2.15"
+                      strokeWidth="1.55"
                       strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
-                    <circle cx="8" cy="12.45" r="1.25" fill="currentColor" />
                   </svg>
                 </button>
                 <div

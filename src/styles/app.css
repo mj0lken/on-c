@@ -579,7 +579,7 @@ html:has(.app-stage.is-tauri) #root {
   background: var(--bg-hover);
 }
 
-/* Boxless glowing, pulsing `!` self-update glyph left of `+` */
+/* Boxless glowing, pulsing up-arrow circle (`↑`) self-update glyph left of `+` */
 .update-alert-btn {
   position: relative;
   color: var(--accent);

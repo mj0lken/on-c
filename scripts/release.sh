@@ -143,7 +143,7 @@ else
 
 **Requirements:** Apple Silicon Mac, macOS 13 (Ventura) or later — or use the [live web app](https://mj0lken.github.io/on-c/) in any modern browser.
 
-**Install or update:** Click the pulsing **!** icon in the **on/c** title bar to update in place, run \`brew install --cask mj0lken/tap/on-c\` (or \`brew upgrade --cask on-c\`), or unzip, drag **on-c.app** to Applications and open it. The app isn't signed with a paid Apple Developer ID yet, so the first launch of a fresh download is blocked: click **Done**, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
+**Install or update:** Click the pulsing **↑** update icon in the **on/c** title bar to update in place, run \`brew install --cask mj0lken/tap/on-c\` (or \`brew upgrade --cask on-c\`), or unzip, drag **on-c.app** to Applications and open it. The app isn't signed with a paid Apple Developer ID yet, so the first launch of a fresh download is blocked: click **Done**, then go to **System Settings › Privacy & Security** and click **Open Anyway**.
 
 SHA-256 of \`$(basename "$ZIP")\`: \`$SHA\`
 EOF
