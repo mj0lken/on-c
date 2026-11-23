@@ -5,6 +5,7 @@ interface TabBarProps {
   tabs: CalculatorTab[];
   activeTabId: string;
   canCloseActiveTab: boolean;
+  isTabWorthArchiving?: (tab: CalculatorTab) => boolean;
   isTauri?: boolean;
   updateAvailableVersion?: string | null;
   isInstallingUpdate?: boolean;
@@ -20,6 +21,7 @@ export const TabBar: React.FC<TabBarProps> = ({
   tabs,
   activeTabId,
   canCloseActiveTab,
+  isTabWorthArchiving,
   isTauri = false,
   updateAvailableVersion = null,
   isInstallingUpdate = false,
@@ -267,64 +269,71 @@ export const TabBar: React.FC<TabBarProps> = ({
         >
           {tabs.map((tab, idx) => {
             const isSelected = tab.id === activeTabId;
+            const canCloseThisTab =
+              tabs.length > 1 ||
+              (isSelected ? canCloseActiveTab : Boolean(isTabWorthArchiving?.(tab)));
             return (
-              <button
+              <div
                 key={tab.id}
-                ref={(el) => {
-                  if (el) tabRefs.current.set(tab.id, el);
-                  else tabRefs.current.delete(tab.id);
-                }}
-                type="button"
-                role="tab"
-                id={`tab-${tab.id}`}
-                className="tab-btn"
-                aria-selected={isSelected}
-                {...(isSelected
-                  ? ({ focusgroupstart: '' } as React.ButtonHTMLAttributes<HTMLButtonElement>)
-                  : {})}
-                onClick={() => onSelectTab(tab.id)}
-                onFocus={() => {
-                  if (editingTabId === null && !isSelected) {
-                    onSelectTab(tab.id);
-                  }
-                }}
-                onDoubleClick={() => {
-                  setEditingTabId(tab.id);
-                  setDraftTitle(tab.title);
-                }}
-                onAuxClick={(e) => {
-                  if (e.button === 1 && (tabs.length > 1 || canCloseActiveTab)) {
-                    e.preventDefault();
-                    onCloseTab(tab.id);
-                  }
-                }}
-                onKeyDown={(e) => handleTabKeyDown(e, idx)}
-                title={`${tab.title} — Double-click to rename${tabs.length > 1 || canCloseActiveTab ? ', middle-click to archive & close' : ''}`}
+                className={`tab-pill ${isSelected ? 'is-selected' : ''} ${canCloseThisTab ? 'is-closable' : ''}`}
               >
-                <span className="tab-btn-label">{tab.title}</span>
-              </button>
+                <button
+                  ref={(el) => {
+                    if (el) tabRefs.current.set(tab.id, el);
+                    else tabRefs.current.delete(tab.id);
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`tab-${tab.id}`}
+                  className="tab-btn"
+                  aria-selected={isSelected}
+                  {...(isSelected
+                    ? ({ focusgroupstart: '' } as React.ButtonHTMLAttributes<HTMLButtonElement>)
+                    : {})}
+                  onClick={() => onSelectTab(tab.id)}
+                  onFocus={() => {
+                    if (editingTabId === null && !isSelected) {
+                      onSelectTab(tab.id);
+                    }
+                  }}
+                  onDoubleClick={() => {
+                    setEditingTabId(tab.id);
+                    setDraftTitle(tab.title);
+                  }}
+                  onAuxClick={(e) => {
+                    if (e.button === 1 && canCloseThisTab) {
+                      e.preventDefault();
+                      onCloseTab(tab.id);
+                    }
+                  }}
+                  onKeyDown={(e) => handleTabKeyDown(e, idx)}
+                  title={`${tab.title} — Double-click to rename${canCloseThisTab ? ', middle-click to archive & close' : ''}`}
+                >
+                  <span className="tab-btn-label">{tab.title}</span>
+                </button>
+                {canCloseThisTab && (
+                  <button
+                    type="button"
+                    className="tab-close-btn"
+                    onClick={() => onCloseTab(tab.id)}
+                    title={`Close & archive ${tab.title}${isSelected ? ' (⌘W)' : ''}`}
+                    aria-label={`Close ${tab.title}`}
+                    {...({ focusgroup: 'none' } as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path
+                        d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
-
-        {canCloseActiveTab && (
-          <button
-            type="button"
-            className="tab-close-btn"
-            onClick={() => onCloseTab(activeTabId)}
-            title="Close & archive tab (⌘W)"
-            aria-label="Close active tab"
-          >
-            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M4 4l8 8M12 4l-8 8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        )}
 
         {editingTabId && (
           <div className="tab-rename-overlay">

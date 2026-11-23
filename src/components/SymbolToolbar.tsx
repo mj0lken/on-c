@@ -168,6 +168,22 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
       onInsertSymbol(item.insert);
     };
 
+    const handleCloseButtonClick = () => {
+      const pop = popoverRef.current;
+      if (pop?.matches(':popover-open')) {
+        try {
+          pop.hidePopover();
+        } catch {
+          // Ignore if already hidden
+        }
+      }
+      if (!openedProgrammaticallyRef.current) {
+        requestAnimationFrame(() => {
+          moreBtnRef.current?.focus({ preventScroll: true });
+        });
+      }
+    };
+
     return (
       <>
         <div
@@ -205,65 +221,83 @@ export const SymbolToolbar = forwardRef<SymbolToolbarHandle, SymbolToolbarProps>
             aria-label="Search mathematical symbols and operators"
             {...({ popover: 'auto' } as React.HTMLAttributes<HTMLDivElement>)}
           >
-            <search className="symbol-search-wrap">
-              <svg
-                className="symbol-search-icon"
-                width="12"
-                height="12"
-                viewBox="0 0 20 20"
-                fill="none"
-                aria-hidden="true"
-              >
-                <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
-                <path
-                  d="M13.5 13.5L17 17"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <input
-                ref={searchInputRef}
-                type="text"
-                spellCheck={false}
-                autoComplete="off"
-                className="symbol-search-input"
-                data-tour-target="char-search"
-                placeholder="Search symbols (deg, root, pi, eur)…"
-                aria-label="Search symbols and operators"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && filteredSymbols.length > 0) {
-                    e.preventDefault();
-                    handlePickSymbol(filteredSymbols[0]);
-                  } else if (e.key === 'ArrowDown' && filteredSymbols.length > 0) {
-                    e.preventDefault();
-                    itemRefs.current[0]?.focus({ preventScroll: true });
-                  }
-                }}
-              />
-              {query.length > 0 && (
-                <button
-                  type="button"
-                  className="search-clear-btn"
-                  aria-label="Clear symbol search"
-                  onClick={() => {
-                    setQuery('');
-                    searchInputRef.current?.focus({ preventScroll: true });
-                  }}
+            <div className="symbol-search-bar">
+              <search className="symbol-search-box">
+                <svg
+                  className="symbol-search-icon"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  aria-hidden="true"
                 >
-                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M4 4l8 8M12 4l-8 8"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              )}
-            </search>
+                  <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+                  <path
+                    d="M13.5 13.5L17 17"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="symbol-search-input"
+                  data-tour-target="char-search"
+                  placeholder="Search symbols (deg, root, pi, eur)…"
+                  aria-label="Search symbols and operators"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && filteredSymbols.length > 0) {
+                      e.preventDefault();
+                      handlePickSymbol(filteredSymbols[0]);
+                    } else if (e.key === 'ArrowDown' && filteredSymbols.length > 0) {
+                      e.preventDefault();
+                      itemRefs.current[0]?.focus({ preventScroll: true });
+                    }
+                  }}
+                />
+                {query.length > 0 && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    aria-label="Clear symbol search"
+                    onClick={() => {
+                      setQuery('');
+                      searchInputRef.current?.focus({ preventScroll: true });
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path
+                        d="M4 4l8 8M12 4l-8 8"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </search>
+
+              <button
+                type="button"
+                className="icon-btn popover-close-btn"
+                aria-label="Close symbols"
+                onClick={handleCloseButtonClick}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M4 4l8 8M12 4l-8 8"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
 
             <div className="symbol-list">
               {filteredSymbols.length === 0 ? (

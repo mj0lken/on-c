@@ -855,14 +855,42 @@ progress.loading-spinner:indeterminate {
   }
 }
 
-/* Style selected tab from [aria-selected="true"] in high-contrast pill, preserving identical dimensions and no underline */
-.tab-btn {
+/* Style selected tab from [aria-selected="true"] in high-contrast pill, with close button inside the pill */
+.tab-pill {
   position: relative;
   flex: 0 1 auto;
   height: 21px;
   min-inline-size: 34px;
-  max-inline-size: 140px;
+  max-inline-size: 156px;
   interpolate-size: allow-keywords;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  scroll-snap-align: start;
+
+  @supports not (interpolate-size: allow-keywords) {
+    --expanded-max-inline-size: 16rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: max-inline-size 0.25s ease;
+  }
+}
+
+.tab-pill:is(:hover, :focus-within),
+.tab-pill:has(> .tab-btn[aria-selected='true']) {
+  max-inline-size: var(--expanded-max-inline-size, max-content);
+}
+
+.tab-pill:has(> .tab-btn[aria-selected='true']) {
+  min-inline-size: max-content;
+}
+
+.tab-btn {
+  position: relative;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  height: 100%;
   display: inline-flex;
   align-items: center;
   padding: 0 8px;
@@ -875,20 +903,21 @@ progress.loading-spinner:indeterminate {
   font-size: 11.5px;
   font-weight: 500;
   cursor: pointer;
-  scroll-snap-align: start;
-
-  @supports not (interpolate-size: allow-keywords) {
-    --expanded-max-inline-size: 16rem;
-  }
 
   @media (prefers-reduced-motion: no-preference) {
-    transition: background-color 0.14s ease, color 0.14s ease, max-inline-size 0.25s ease;
+    transition: background-color 0.14s ease, color 0.14s ease, padding-inline-end 0.14s ease;
   }
 }
 
-.tab-btn:is(:hover, :focus-visible),
-.tab-btn[aria-selected='true'] {
-  max-inline-size: var(--expanded-max-inline-size, max-content);
+.tab-pill.is-closable:is(:hover, :focus-within) > .tab-btn,
+.tab-pill.is-closable > .tab-btn[aria-selected='true'] {
+  padding-inline-end: 21px;
+}
+
+@media (hover: none) {
+  .tab-pill.is-closable > .tab-btn {
+    padding-inline-end: 21px;
+  }
 }
 
 .tab-btn:focus-visible {
@@ -897,7 +926,7 @@ progress.loading-spinner:indeterminate {
 }
 
 @media (hover: hover) {
-  .tab-btn:hover:not([aria-selected='true']) {
+  .tab-pill:hover > .tab-btn:not([aria-selected='true']) {
     color: var(--text-primary);
     background: var(--bg-hover);
   }
@@ -926,23 +955,70 @@ progress.loading-spinner:indeterminate {
 }
 
 .tab-close-btn {
-  width: 18px;
-  height: 18px;
+  position: absolute;
+  inset-inline-end: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 4px;
+  border-radius: 3.5px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: opacity 0.12s ease, color 0.12s ease, background-color 0.12s ease;
+  }
 }
 
-.tab-close-btn:hover {
+.tab-pill:is(:hover, :focus-within) > .tab-close-btn,
+.tab-pill:has(> .tab-btn[aria-selected='true']) > .tab-close-btn {
+  opacity: 0.72;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .tab-pill > .tab-close-btn {
+    opacity: 0.72;
+    pointer-events: auto;
+  }
+}
+
+.tab-pill:has(> .tab-btn[aria-selected='true']) > .tab-close-btn {
+  color: var(--tab-active-fg);
+}
+
+.tab-close-btn:hover,
+.tab-close-btn:focus-visible {
+  opacity: 1 !important;
   color: var(--text-primary);
   background: var(--bg-hover);
+}
+
+.tab-pill:has(> .tab-btn[aria-selected='true']) > .tab-close-btn:hover,
+.tab-pill:has(> .tab-btn[aria-selected='true']) > .tab-close-btn:focus-visible {
+  color: var(--tab-active-fg);
+  background: color-mix(in srgb, var(--tab-active-fg) 16%, transparent);
+}
+
+.tab-close-btn:focus-visible {
+  outline: 1.5px solid currentColor;
+  outline-offset: -1px;
+}
+
+@media (forced-colors: active) {
+  .tab-pill:has(> .tab-btn[aria-selected='true']) > .tab-close-btn {
+    color: SelectedItemText;
+  }
 }
 
 .tab-rename-overlay {
@@ -1418,6 +1494,28 @@ progress.loading-spinner:indeterminate {
   gap: 7px;
   padding: 6px 10px;
   border-bottom: 1px solid var(--separator-rule);
+}
+
+.symbol-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px 7px 12px;
+  border-bottom: 1px solid var(--separator-rule);
+  flex-shrink: 0;
+}
+
+.symbol-search-box {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popover-close-btn {
+  flex-shrink: 0;
 }
 
 .symbol-search-icon {

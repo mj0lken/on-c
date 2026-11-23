@@ -34,11 +34,11 @@ test('/help opens full size, centered, without dimmed backdrop', async ({ page }
   expect(await dialog.locator('.help-results *').count()).toBeGreaterThan(5);
 });
 
-for (const [label, selector] of [
-  ['/char', '.symbol-more-popover:not(.units-menu-popover):popover-open'],
-  ['/units', '.units-menu-popover:popover-open'],
+for (const [label, selector, closeLabel] of [
+  ['/char', '.symbol-more-popover:not(.units-menu-popover):popover-open', 'Close symbols'],
+  ['/units', '.units-menu-popover:popover-open', 'Close units'],
 ] as const) {
-  test(`${label} opens like /help (full size, inside viewport, rows visible)`, async ({ page }) => {
+  test(`${label} opens like /help (full size, inside viewport, rows visible, close × works)`, async ({ page }) => {
     await page.getByRole('button', { name: new RegExp(`^${label}`) }).click();
     const pop = page.locator(selector);
     await expectFullSize(pop);
@@ -46,8 +46,34 @@ for (const [label, selector] of [
     const list = pop.locator('.symbol-list');
     expect((await list.boundingBox())!.height, 'list is not collapsed').toBeGreaterThan(150);
     await expect(pop.locator('.symbol-list-item').first()).toBeVisible();
+
+    const closeBtn = pop.getByRole('button', { name: closeLabel });
+    await expect(closeBtn).toBeVisible();
+    await closeBtn.click();
+    await expect(pop).toBeHidden();
   });
 }
+
+test('tab close × is rendered inside the tab pill and closes the tab', async ({ page }) => {
+  await page.getByRole('button', { name: 'New sheet tab' }).click();
+  const tabs = page.getByRole('tab');
+  await expect(tabs).toHaveCount(2);
+
+  const selectedTab = page.locator('.tab-btn[aria-selected="true"]');
+  const closeBtn = page.locator('.tab-pill:has(> .tab-btn[aria-selected="true"]) > .tab-close-btn');
+  await expect(closeBtn).toBeVisible();
+
+  const tabBox = (await selectedTab.boundingBox())!;
+  const closeBox = (await closeBtn.boundingBox())!;
+  // Close button sits inside the tab pill bounds rather than outside it
+  expect(closeBox.x).toBeGreaterThanOrEqual(tabBox.x);
+  expect(closeBox.x + closeBox.width).toBeLessThanOrEqual(tabBox.x + tabBox.width);
+  expect(closeBox.y).toBeGreaterThanOrEqual(tabBox.y);
+  expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(tabBox.y + tabBox.height);
+
+  await closeBtn.click();
+  await expect(tabs).toHaveCount(1);
+});
 
 test('settings currency browser lists currencies', async ({ page }) => {
   await page.locator('[data-tour-target="settings-btn"]').click();

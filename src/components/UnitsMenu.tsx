@@ -53,113 +53,184 @@ export interface UnitsMenuHandle {
   open: () => void;
 }
 
-export const UnitsMenu = forwardRef<UnitsMenuHandle>((_props, ref) => {
-  const uid = useId().replace(/:/g, '');
-  const popoverId = `units-menu-${uid}`;
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const chipsRef = useRef<HTMLDivElement>(null);
-  const copiedTimerRef = useRef<number | undefined>(undefined);
-  const [query, setQuery] = useState('');
-  const [active, setActive] = useState<CategoryId | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [openCount, setOpenCount] = useState(0);
+interface UnitsMenuProps {
+  onRestoreSheetFocus?: () => void;
+}
 
-  useToolbarFocusFallback(chipsRef, 'button.topic-chip');
+export const UnitsMenu = forwardRef<UnitsMenuHandle, UnitsMenuProps>(
+  ({ onRestoreSheetFocus }, ref) => {
+    const uid = useId().replace(/:/g, '');
+    const popoverId = `units-menu-${uid}`;
+    const btnRef = useRef<HTMLButtonElement>(null);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const chipsRef = useRef<HTMLDivElement>(null);
+    const copiedTimerRef = useRef<number | undefined>(undefined);
+    const openedProgrammaticallyRef = useRef(false);
+    const [isOpen, setIsOpen] = useState(false);
+    const [query, setQuery] = useState('');
+    const [active, setActive] = useState<CategoryId | null>(null);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [openCount, setOpenCount] = useState(0);
 
-  useImperativeHandle(ref, () => ({
-    open: () => {
+    useToolbarFocusFallback(chipsRef, 'button.topic-chip');
+
+    useImperativeHandle(ref, () => ({
+      open: () => {
+        const pop = popoverRef.current;
+        if (!pop || pop.matches(':popover-open')) return;
+        openedProgrammaticallyRef.current = true;
+        try {
+          (pop as HTMLElement & { showPopover: (o?: { source?: HTMLElement }) => void }).showPopover(
+            btnRef.current ? { source: btnRef.current } : undefined
+          );
+        } catch {
+          pop.showPopover();
+        }
+      },
+    }));
+
+    // Currencies are registered at runtime by the FX feed, so rebuild when opened.
+    const entries = useMemo(buildEntries, [openCount]);
+
+    const filtered = useMemo(() => {
+      const q = query.trim().toLowerCase();
+      return entries.filter((e) => {
+        if (active && e.category !== active) return false;
+        if (!q) return true;
+        const hay = `${e.symbol} ${e.name} ${e.aliases} ${CATEGORY_LABEL[e.category]}`.toLowerCase();
+        return q.split(/\s+/).every((t) => hay.includes(t));
+      });
+    }, [entries, query, active]);
+
+    useEffect(() => () => window.clearTimeout(copiedTimerRef.current), []);
+
+    useEffect(() => {
       const pop = popoverRef.current;
-      if (!pop || pop.matches(':popover-open')) return;
-      try {
-        (pop as HTMLElement & { showPopover: (o?: { source?: HTMLElement }) => void }).showPopover(
-          btnRef.current ? { source: btnRef.current } : undefined
-        );
-      } catch {
-        pop.showPopover();
+      const btn = btnRef.current;
+      if (!pop || !btn) return;
+      const onToggle = (ev: Event) => {
+        const openNow = (ev as ToggleEvent).newState === 'open';
+        setIsOpen(openNow);
+        if (openNow) {
+          setQuery('');
+          setOpenCount((n) => n + 1);
+          requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
+        } else {
+          const shouldRestore = openedProgrammaticallyRef.current;
+          openedProgrammaticallyRef.current = false;
+          if (shouldRestore) {
+            requestAnimationFrame(() => onRestoreSheetFocus?.());
+          }
+        }
+      };
+      pop.addEventListener('toggle', onToggle);
+      return () => pop.removeEventListener('toggle', onToggle);
+    }, [onRestoreSheetFocus]);
+
+    const handleCloseButtonClick = () => {
+      const pop = popoverRef.current;
+      const restoreSheet = openedProgrammaticallyRef.current;
+      if (pop?.matches(':popover-open')) {
+        try {
+          pop.hidePopover();
+        } catch {
+          // Ignore if already hidden
+        }
       }
-    },
-  }));
-
-  // Currencies are registered at runtime by the FX feed, so rebuild when opened.
-  const entries = useMemo(buildEntries, [openCount]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return entries.filter((e) => {
-      if (active && e.category !== active) return false;
-      if (!q) return true;
-      const hay = `${e.symbol} ${e.name} ${e.aliases} ${CATEGORY_LABEL[e.category]}`.toLowerCase();
-      return q.split(/\s+/).every((t) => hay.includes(t));
-    });
-  }, [entries, query, active]);
-
-  useEffect(() => () => window.clearTimeout(copiedTimerRef.current), []);
-
-  useEffect(() => {
-    const pop = popoverRef.current;
-    const btn = btnRef.current;
-    if (!pop || !btn) return;
-    const onToggle = (ev: Event) => {
-      if ((ev as ToggleEvent).newState !== 'open') return;
-      setQuery('');
-      setOpenCount((n) => n + 1);
-      requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
+      if (!restoreSheet) {
+        requestAnimationFrame(() => btnRef.current?.focus({ preventScroll: true }));
+      }
     };
-    pop.addEventListener('toggle', onToggle);
-    return () => pop.removeEventListener('toggle', onToggle);
-  }, []);
 
-  const copy = async (entry: UnitEntry) => {
-    try {
-      await navigator.clipboard.writeText(entry.symbol);
-    } catch {
-      return;
-    }
-    setCopiedKey(entry.key);
-    window.clearTimeout(copiedTimerRef.current);
-    copiedTimerRef.current = window.setTimeout(() => setCopiedKey(null), 1200);
-  };
+    const copy = async (entry: UnitEntry) => {
+      try {
+        await navigator.clipboard.writeText(entry.symbol);
+      } catch {
+        return;
+      }
+      setCopiedKey(entry.key);
+      window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = window.setTimeout(() => setCopiedKey(null), 1200);
+    };
 
-  const activeMeta = CATEGORIES.find((c) => c.id === active);
+    const activeMeta = CATEGORIES.find((c) => c.id === active);
 
-  return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        className="sym-btn sym-more-btn"
-        title="Units you can convert between (/units)"
-        aria-label="/units — Browse convertible units"
-        popoverTarget={popoverId}
-      >
-        /units
-      </button>
-      <div
-        ref={popoverRef}
-        id={popoverId}
-        className="symbol-more-popover units-menu-popover"
-        aria-label="Convertible units"
-        {...({ popover: 'auto' } as React.HTMLAttributes<HTMLDivElement>)}
-      >
-        <search className="symbol-search-wrap">
-          <svg className="symbol-search-icon" width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
-            <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-          <input
-            ref={searchInputRef}
-            type="text"
-            spellCheck={false}
-            autoComplete="off"
-            className="symbol-search-input"
-            placeholder="Search units (km, cup, GB, °F)…"
-            aria-label="Search units"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </search>
+    return (
+      <>
+        <button
+          ref={btnRef}
+          type="button"
+          className="sym-btn sym-more-btn"
+          title="Units you can convert between (/units)"
+          aria-label="/units — Browse convertible units"
+          aria-expanded={isOpen}
+          popoverTarget={popoverId}
+        >
+          /units
+        </button>
+        <div
+          ref={popoverRef}
+          id={popoverId}
+          className="symbol-more-popover units-menu-popover"
+          aria-label="Convertible units"
+          {...({ popover: 'auto' } as React.HTMLAttributes<HTMLDivElement>)}
+        >
+          <div className="symbol-search-bar">
+            <search className="symbol-search-box">
+              <svg className="symbol-search-icon" width="12" height="12" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M13.5 13.5L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                spellCheck={false}
+                autoComplete="off"
+                className="symbol-search-input"
+                placeholder="Search units (km, cup, GB, °F)…"
+                aria-label="Search units"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              {query.length > 0 && (
+                <button
+                  type="button"
+                  className="search-clear-btn"
+                  aria-label="Clear unit search"
+                  onClick={() => {
+                    setQuery('');
+                    searchInputRef.current?.focus({ preventScroll: true });
+                  }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M4 4l8 8M12 4l-8 8"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </search>
+
+            <button
+              type="button"
+              className="icon-btn popover-close-btn"
+              aria-label="Close units"
+              onClick={handleCloseButtonClick}
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path
+                  d="M4 4l8 8M12 4l-8 8"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
 
         <div
           ref={chipsRef}

@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Update } from '@tauri-apps/plugin-updater';
 
 const INITIAL_CHECK_DELAY_MS = 1_600;
-const PERIODIC_CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
+const PERIODIC_CHECK_INTERVAL_MS = 30 * 60 * 1_000;
+const MIN_FOCUS_RECHECK_MS = 5 * 60 * 1_000;
 const CHECK_TIMEOUT_MS = 15_000;
 const INSTALL_TIMEOUT_MS = 120_000;
 const MIN_MANUAL_CHECK_MS = 400;
@@ -57,6 +58,7 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
   const isInstallingRef = useRef(false);
   const mountedRef = useRef(true);
   const checkResultTimerRef = useRef<number | null>(null);
+  const lastCheckAtRef = useRef<number>(0);
 
   const canCheckForUpdates = isTauri || Boolean(import.meta.env.DEV);
 
@@ -119,6 +121,7 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
 
         const { check } = await import('@tauri-apps/plugin-updater');
         const update = await check({ timeout: CHECK_TIMEOUT_MS });
+        lastCheckAtRef.current = Date.now();
         await waitMinManualFloor();
 
         if (!mountedRef.current) {
@@ -193,7 +196,15 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
     const handleOnline = () => {
       void runUpdateCheck(false);
     };
+    const handleFocusOrVisible = () => {
+      if (document.visibilityState === 'hidden') return;
+      if (Date.now() - lastCheckAtRef.current >= MIN_FOCUS_RECHECK_MS) {
+        void runUpdateCheck(false);
+      }
+    };
     window.addEventListener('online', handleOnline);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
 
     return () => {
       mountedRef.current = false;
@@ -203,6 +214,8 @@ export function useAppUpdater({ isTauri, onNotify }: UseAppUpdaterOptions): AppU
         window.clearTimeout(checkResultTimerRef.current);
       }
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
       const pending = updateRef.current;
       updateRef.current = null;
       if (pending) {

@@ -765,6 +765,7 @@ export const App = forwardRef<AppHandle, AppProps>(
                 tabs={tabs}
                 activeTabId={activeTab.id}
                 canCloseActiveTab={canCloseActiveTab}
+                isTabWorthArchiving={isTabWorthArchiving}
                 isTauri={isTauri}
                 updateAvailableVersion={updateAvailableVersion}
                 isInstallingUpdate={isInstallingUpdate}
@@ -797,7 +798,10 @@ export const App = forwardRef<AppHandle, AppProps>(
                   onRestoreSheetFocus={() => sheetRef.current?.focusCurrentCursor()}
                   afterCharSlot={
                     <>
-                      <UnitsMenu ref={unitsMenuRef} />
+                      <UnitsMenu
+                        ref={unitsMenuRef}
+                        onRestoreSheetFocus={() => sheetRef.current?.focusCurrentCursor()}
+                      />
                       <button
                         type="button"
                         className="sym-btn sym-more-btn"
