@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# Cuts a release in one go: runs the tests, builds and zips the app, publishes the GitHub release,
-# checks the uploaded zip, and updates the Homebrew cask.
+# Cuts a release of on/c.
 #
-#   scripts/release.sh 1.0.0                     # release main as it is on GitHub
-#   scripts/release.sh 1.0.0 --dry-run           # everything local (tests, build, zip, notes, cask), nothing published
-#   scripts/release.sh 1.0.0 --notes-file x.md   # your own release notes instead of the generated ones
+#   scripts/release.sh 1.2.3                     # runs tests + local build check, then pushes tag v1.2.3 for GitHub Actions to publish
+#   scripts/release.sh 1.2.3 --dry-run           # everything local (tests, build, zip, notes, cask check), nothing tagged or published
+#   scripts/release.sh 1.2.3 --local             # publishes directly from this machine and updates local ../homebrew-tap
+#   scripts/release.sh 1.2.3 --local --notes-file x.md
 #
-# Expects the tap checked out next to this repo (../homebrew-tap), or TAP_DIR set.
+# For --local (or cask checks in --dry-run), expects ../homebrew-tap checked out next to this repo, or TAP_DIR set.
 set -euo pipefail
 
 VERSION="${1:-}"
 [[ $# -gt 0 ]] && shift
 DRY_RUN=false
+LOCAL_PUBLISH=false
 NOTES_FILE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=true ;;
+    --local) LOCAL_PUBLISH=true ;;
     --notes-file)
       NOTES_FILE="$(cd "$(dirname "${2:?--notes-file needs a file}")" && pwd)/$(basename "$2")"
       [[ -f "$NOTES_FILE" ]] || { echo "release: no notes file at $2" >&2; exit 2; }
@@ -36,7 +38,7 @@ fail() { echo "release: $*" >&2; exit 1; }
 step() { printf '\n==> %s\n' "$*"; }
 require() { if $DRY_RUN; then echo "(dry run) warning: $1"; else fail "$1"; fi }
 
-[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "usage: scripts/release.sh X.Y.Z [--dry-run] [--notes-file FILE]"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "usage: scripts/release.sh X.Y.Z [--dry-run] [--local] [--notes-file FILE]"
 TAG="v$VERSION"
 ZIP="build/on-c-$VERSION-arm64.zip"
 TARBALL="build/on-c.app.tar.gz"
@@ -75,16 +77,22 @@ if [[ -n "$PREVIOUS" ]]; then
   NEWEST=$(printf '%s\n%s\n' "${PREVIOUS#v}" "$VERSION" | sort -V | tail -1)
   [[ "$NEWEST" == "$VERSION" && "${PREVIOUS#v}" != "$VERSION" ]] || fail "$VERSION isn't newer than $PREVIOUS"
 fi
-if gh auth status >/dev/null 2>&1; then
-  if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then fail "a release (maybe a draft) called $TAG already exists"; fi
-else
-  require "gh isn't signed in (gh auth login)"
+if $LOCAL_PUBLISH || $DRY_RUN; then
+  if gh auth status >/dev/null 2>&1; then
+    if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then fail "a release (maybe a draft) called $TAG already exists"; fi
+  elif $LOCAL_PUBLISH; then
+    fail "gh isn't signed in (gh auth login)"
+  else
+    echo "(dry run) warning: gh isn't signed in (gh auth login)"
+  fi
 fi
-[[ -f "$CASK" ]] || fail "no cask at $CASK; set TAP_DIR to the homebrew-tap checkout"
-[[ -f "$SIGNING_KEY" ]] || fail "no updater signing key at $SIGNING_KEY; generate one with: npm run tauri -- signer generate -w ~/.tauri/onc.key"
+if $LOCAL_PUBLISH; then
+  [[ -f "$CASK" ]] || fail "no cask at $CASK; set TAP_DIR to the homebrew-tap checkout"
+  [[ -f "$SIGNING_KEY" ]] || fail "no updater signing key at $SIGNING_KEY; generate one with: npm run tauri -- signer generate -w ~/.tauri/onc.key"
+  [[ -z "$(git -C "$TAP_DIR" status --porcelain)" ]] || fail "the tap has uncommitted changes"
+  git -C "$TAP_DIR" pull -q --ff-only
+fi
 command -v cargo-audit >/dev/null || require "cargo-audit isn't installed (brew install cargo-audit)"
-[[ -z "$(git -C "$TAP_DIR" status --porcelain)" ]] || require "the tap has uncommitted changes"
-$DRY_RUN || git -C "$TAP_DIR" pull -q --ff-only
 TARGET=$(git rev-parse HEAD)
 BUILD_NUMBER=$(git rev-list --count HEAD)
 
@@ -97,7 +105,7 @@ fi
 
 step "Building $VERSION ($BUILD_NUMBER) and zipping"
 VERSION="$VERSION" BUILD_NUMBER="$BUILD_NUMBER" ./scripts/build-app.sh
-codesign --verify --strict build/on-c.app
+codesign --verify --deep --strict build/on-c.app
 [[ "$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" build/on-c.app/Contents/Info.plist)" == "$VERSION" ]] \
   || fail "the built app doesn't say $VERSION"
 rm -f "$ZIP"
@@ -105,15 +113,19 @@ ditto -c -k --sequesterRsrc --keepParent build/on-c.app "$ZIP"
 SHA=$(shasum -a 256 "$ZIP" | cut -d' ' -f1)
 echo "$ZIP  $SHA"
 
-step "Preparing the Homebrew cask"
-mkdir -p "$WORK/Casks"
-UPDATED="$WORK/Casks/on-c.rb"
-sed -E -e "s/^  version \".*\"$/  version \"$VERSION\"/" -e "s/^  sha256 \".*\"$/  sha256 \"$SHA\"/" "$CASK" > "$UPDATED"
-grep -qx "  version \"$VERSION\"" "$UPDATED" && grep -qx "  sha256 \"$SHA\"" "$UPDATED" \
-  || fail "couldn't set the version and sha256 in $CASK; has its format changed?"
-diff -u "$CASK" "$UPDATED" || true
-brew style "$UPDATED"
-cp "$UPDATED" "$PREPARED_CASK"
+if [[ -f "$CASK" ]] && ($LOCAL_PUBLISH || $DRY_RUN); then
+  step "Preparing the Homebrew cask"
+  mkdir -p "$WORK/Casks"
+  UPDATED="$WORK/Casks/on-c.rb"
+  sed -E -e "s/^  version \".*\"$/  version \"$VERSION\"/" -e "s/^  sha256 \".*\"$/  sha256 \"$SHA\"/" "$CASK" > "$UPDATED"
+  grep -qx "  version \"$VERSION\"" "$UPDATED" && grep -qx "  sha256 \"$SHA\"" "$UPDATED" \
+    || fail "couldn't set the version and sha256 in $CASK; has its format changed?"
+  diff -u "$CASK" "$UPDATED" || true
+  brew style "$UPDATED"
+  cp "$UPDATED" "$PREPARED_CASK"
+elif $DRY_RUN; then
+  echo "(dry run) skipping local cask check (no cask at $CASK)"
+fi
 
 step "Writing release notes"
 if [[ -n "$NOTES_FILE" ]]; then
@@ -151,44 +163,46 @@ EOF
 fi
 cat "$NOTES_PATH"
 
-step "Signing in-app updater bundle and writing latest.json"
-rm -f "$TARBALL" "$TARBALL_SIG" "$MANIFEST"
-COPYFILE_DISABLE=1 tar -czf "$TARBALL" -C build on-c.app
-TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
-  node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
-  -f "$SIGNING_KEY" \
-  --app-version "$VERSION" \
-  "$TARBALL" >/dev/null
-[[ -s "$TARBALL_SIG" ]] || fail "failed to generate updater signature at $TARBALL_SIG"
+if $LOCAL_PUBLISH || ($DRY_RUN && [[ -f "$SIGNING_KEY" ]]); then
+  step "Signing in-app updater bundle and writing latest.json"
+  rm -f "$TARBALL" "$TARBALL_SIG" "$MANIFEST"
+  COPYFILE_DISABLE=1 tar -czf "$TARBALL" -C build on-c.app
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" \
+    node ./node_modules/@tauri-apps/cli/tauri.js signer sign \
+    -f "$SIGNING_KEY" \
+    --app-version "$VERSION" \
+    "$TARBALL" >/dev/null
+  [[ -s "$TARBALL_SIG" ]] || fail "failed to generate updater signature at $TARBALL_SIG"
 
-PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-UPDATER_URL="https://github.com/$REPO/releases/download/$TAG/on-c.app.tar.gz"
-MANIFEST_VERSION="$VERSION" \
-MANIFEST_PUB_DATE="$PUB_DATE" \
-MANIFEST_URL="$UPDATER_URL" \
-MANIFEST_NOTES_FILE="$NOTES_PATH" \
-MANIFEST_SIG_FILE="$TARBALL_SIG" \
-MANIFEST_OUT="$MANIFEST" \
-node -e '
-  const fs = require("node:fs");
-  const signature = fs.readFileSync(process.env.MANIFEST_SIG_FILE, "utf8").trim();
-  const notes = fs.readFileSync(process.env.MANIFEST_NOTES_FILE, "utf8").trim();
-  const entry = {
-    signature,
-    url: process.env.MANIFEST_URL,
-  };
-  const manifest = {
-    version: process.env.MANIFEST_VERSION,
-    notes,
-    pub_date: process.env.MANIFEST_PUB_DATE,
-    platforms: {
-      "darwin-aarch64": entry,
-      "darwin-aarch64-app": entry,
-    },
-  };
-  fs.writeFileSync(process.env.MANIFEST_OUT, JSON.stringify(manifest, null, 2) + "\n");
-'
-echo "$TARBALL ($(wc -c < "$TARBALL" | tr -d ' ') bytes) + $MANIFEST"
+  PUB_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  UPDATER_URL="https://github.com/$REPO/releases/download/$TAG/on-c.app.tar.gz"
+  MANIFEST_VERSION="$VERSION" \
+  MANIFEST_PUB_DATE="$PUB_DATE" \
+  MANIFEST_URL="$UPDATER_URL" \
+  MANIFEST_NOTES_FILE="$NOTES_PATH" \
+  MANIFEST_SIG_FILE="$TARBALL_SIG" \
+  MANIFEST_OUT="$MANIFEST" \
+  node -e '
+    const fs = require("node:fs");
+    const signature = fs.readFileSync(process.env.MANIFEST_SIG_FILE, "utf8").trim();
+    const notes = fs.readFileSync(process.env.MANIFEST_NOTES_FILE, "utf8").trim();
+    const entry = {
+      signature,
+      url: process.env.MANIFEST_URL,
+    };
+    const manifest = {
+      version: process.env.MANIFEST_VERSION,
+      notes,
+      pub_date: process.env.MANIFEST_PUB_DATE,
+      platforms: {
+        "darwin-aarch64": entry,
+        "darwin-aarch64-app": entry,
+      },
+    };
+    fs.writeFileSync(process.env.MANIFEST_OUT, JSON.stringify(manifest, null, 2) + "\n");
+  '
+  echo "$TARBALL ($(wc -c < "$TARBALL" | tr -d ' ') bytes) + $MANIFEST"
+fi
 
 if $DRY_RUN; then
   step "Done (dry run)"
@@ -196,7 +210,17 @@ if $DRY_RUN; then
   exit 0
 fi
 
-step "Publishing $TAG from ${TARGET:0:7}"
+if ! $LOCAL_PUBLISH; then
+  step "Tagging $TAG at ${TARGET:0:7} and triggering GitHub Actions release"
+  git tag -a "$TAG" "$TARGET" -m "on/c $VERSION"
+  git push origin "$TAG"
+  step "Done"
+  echo "Pushed $TAG — GitHub Actions will build, sign, publish the release, and update homebrew-tap:"
+  echo "  https://github.com/$REPO/actions/workflows/release.yml"
+  exit 0
+fi
+
+step "Publishing $TAG from ${TARGET:0:7} (local mode)"
 gh release create "$TAG" "$ZIP" "$TARBALL" "$MANIFEST" --repo "$REPO" --draft --target "$TARGET" \
   --title "on/c $VERSION" --notes-file "$NOTES_PATH"
 DONE="$DONE drafted"
