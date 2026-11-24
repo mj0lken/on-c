@@ -81,4 +81,4 @@ jobs:
       - name: Package & verify signed macOS .app bundle
         run: |
           ./scripts/build-app.sh
-          codesign --verify --strict build/on-c.app
+          codesign --verify --deep --strict build/on-c.app
